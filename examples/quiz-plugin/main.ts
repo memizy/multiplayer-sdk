@@ -1,8 +1,21 @@
-import { createMultiplayerPlugin } from '../../src/sdk'
+import { createMultiplayerPlugin, loadManifestFromDataIsland, renderLandingPageIfNeeded } from '../../src'
 import type { InitContext, MultiPlayer } from '../../src/types'
 
 const app = document.getElementById('app') as HTMLDivElement
 const plugin = createMultiplayerPlugin<any>()
+
+// Load manifest and render landing page if not in iframe
+const manifest = loadManifestFromDataIsland()
+const landingPageRendered = renderLandingPageIfNeeded(manifest, {
+  sandboxUrl: 'https://memizy.github.io/multiplayer-sdk/examples/sandbox/',
+  docsUrl: 'https://learn.memizy.com/multiplayer',
+})
+
+// Exit early if landing page was rendered (plugin only works inside Memizy iframe)
+if (landingPageRendered) {
+  console.log('Running outside iframe - landing page displayed')
+  throw new Error('Plugin mode disabled: running outside Memizy iframe')
+}
 
 let hostContext: InitContext | null = null
 let hostPlayers: MultiPlayer[] = []

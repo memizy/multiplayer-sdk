@@ -10,7 +10,8 @@ export default defineConfig(({ command }) => {
   return {
     plugins: [
       dts({
-        rollupTypes: true,
+        insertTypesEntry: true,
+        rollupTypes: false,
       })
     ],
     build: {
