@@ -1,0 +1,25 @@
+{
+  "name": "@memizy/multiplayer-sdk",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "./dist/multiplayer-sdk.umd.cjs",
+  "module": "./dist/multiplayer-sdk.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/multiplayer-sdk.js",
+      "require": "./dist/multiplayer-sdk.umd.cjs",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "dev": "vite --open /examples/sandbox/index.html",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "typescript": "~6.0.2",
+    "vite": "^8.0.4",
+    "vite-plugin-dts": "^4.5.4"
+  }
+}

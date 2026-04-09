@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Memizy Sandbox</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: #f4f6fb;
+        color: #1b2230;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 0.75rem;
+        padding: 0.9rem;
+        border-bottom: 1px solid #d7deea;
+        background: #fff;
+        position: sticky;
+        top: 0;
+      }
+
+      button {
+        border: 1px solid #293852;
+        border-radius: 0.5rem;
+        background: #1f2d44;
+        color: #fff;
+        padding: 0.55rem 0.9rem;
+        font-size: 0.92rem;
+        cursor: pointer;
+      }
+
+      button:hover {
+        background: #142033;
+      }
+
+      .frames {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        height: calc(100vh - 64px);
+      }
+
+      .pane {
+        border-right: 1px solid #d7deea;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+      }
+
+      .pane:last-child {
+        border-right: none;
+      }
+
+      .label {
+        margin: 0;
+        padding: 0.65rem 0.9rem;
+        background: #eef2f9;
+        border-bottom: 1px solid #d7deea;
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+      }
+
+      iframe {
+        border: 0;
+        width: 100%;
+        height: 100%;
+        background: #fff;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <button id="init-game" type="button">Initialize Game</button>
+      <button id="simulate-join" type="button">Simulate Player Join</button>
+    </div>
+
+    <div class="frames">
+      <section class="pane">
+        <h2 class="label">Host</h2>
+        <iframe id="host-frame" title="Host iframe" src="http://localhost:5173/examples/quiz-plugin/index.html"></iframe>
+      </section>
+      <section class="pane">
+        <h2 class="label">Player</h2>
+        <iframe id="player-frame" title="Player iframe" src="http://localhost:5173/examples/quiz-plugin/index.html"></iframe>
+      </section>
+    </div>
+
+    <script type="module" src="./sandbox.ts"></script>
+  </body>
+</html>
