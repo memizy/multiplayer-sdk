@@ -325,6 +325,7 @@ export function renderLandingPageIfNeeded(
     sandboxUrl?: string
     docsUrl?: string
     pluginUrl?: string
+    defaultSetUrl?: string
   },
 ): boolean {
   // Only render landing page if NOT in iframe
@@ -410,7 +411,7 @@ export function renderLandingPageIfNeeded(
           </section>
 
           <section class="memizy-landing-actions">
-            <a href="${docsUrl}" class="memizy-landing-button memizy-landing-button-secondary" target="_blank" rel="noopener noreferrer">
+            <a href="${docsUrl}" class="memizy-landing-button memizy-landing-button-primary" target="_blank" rel="noopener noreferrer">
               🚀 Play now
             </a>
             <button type="button" class="memizy-landing-button memizy-landing-button-secondary" data-memizy-try-local>
@@ -431,6 +432,7 @@ export function renderLandingPageIfNeeded(
     createLocalSandbox({
       mount: app,
       pluginUrl,
+      defaultSetUrl: options?.defaultSetUrl,
       title: `${name} - Local Sandbox`,
       autoInit: true,
     })

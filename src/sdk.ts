@@ -74,7 +74,7 @@ export function createMultiplayerPlugin<State>() {
   }
 
   const extractContext = (message: MessageEnvelope): InitContext | null => {
-    const maybeContext = (message.context ?? message.payload) as Partial<InitContext> & { role?: Role } | undefined
+    const maybeContext = (message.context ?? message.payload) as Partial<InitContext> & { role?: Role; playerId?: string; playerName?: string } | undefined
     if (!maybeContext) {
       return null
     }
@@ -85,8 +85,8 @@ export function createMultiplayerPlugin<State>() {
       assets: maybeContext.assets ?? {},
       settings: maybeContext.settings ?? {},
       players: maybeContext.players ?? [],
-      myPlayerId: maybeContext.myPlayerId,
-      myPlayerName: maybeContext.myPlayerName,
+      myPlayerId: maybeContext.myPlayerId ?? maybeContext.playerId,
+      myPlayerName: maybeContext.myPlayerName ?? maybeContext.playerName,
     }
   }
 
