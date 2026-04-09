@@ -1,3 +1,5 @@
+import { createLocalSandbox } from './sandbox'
+
 /**
  * Manifest helper utilities for OQSE plugin discovery and landing pages.
  */
@@ -18,7 +20,7 @@ export interface OQSEManifest {
   emoji?: string
   studyMode?: 'game' | 'fun' | 'drill'
   questionDensity?: 'low' | 'medium' | 'high'
-  appSpecific?: Record<string, any>
+  appSpecific?: Record<string, unknown>
   capabilities: {
     actions: string[]
     types?: string[]
@@ -322,6 +324,7 @@ export function renderLandingPageIfNeeded(
   options?: {
     sandboxUrl?: string
     docsUrl?: string
+    pluginUrl?: string
   },
 ): boolean {
   // Only render landing page if NOT in iframe
@@ -337,11 +340,13 @@ export function renderLandingPageIfNeeded(
 
   injectLandingStyles()
 
-  const sandboxUrl = options?.sandboxUrl ?? 'https://memizy.com/multiplayer/sandbox'
   const docsUrl = options?.docsUrl ?? 'https://learn.memizy.com/multiplayer'
-  const settingsSchema = manifest?.appSpecific?.memizy?.settingsSchema
-  const settingsSummary = Array.isArray(settingsSchema) && settingsSchema.length > 0
-    ? settingsSchema.map((setting) => setting.label ?? setting.id).slice(0, 4)
+  const pluginUrl = options?.pluginUrl ?? `${window.location.origin}${window.location.pathname}`
+  const supportedTypes = Array.isArray(manifest?.capabilities?.types)
+    ? manifest?.capabilities?.types.filter((type) => type !== '*')
+    : []
+  const supportedFeatures = Array.isArray(manifest?.capabilities?.features)
+    ? manifest.capabilities.features
     : []
 
   const name = manifest?.appName ?? 'Plugin'
@@ -384,32 +389,33 @@ export function renderLandingPageIfNeeded(
               <li><strong>Manifest data:</strong> loaded from the HTML data island.</li>
               <li><strong>Standalone mode:</strong> a landing page is shown outside the iframe.</li>
               <li><strong>Host/player runtime:</strong> handled by the SDK callbacks.</li>
-              ${settingsSummary.length ? `<li><strong>Settings:</strong> ${settingsSummary.join(', ')}</li>` : ''}
+              ${supportedTypes.length ? `<li><strong>Supported item types:</strong> ${supportedTypes.join(', ')}</li>` : ''}
+              ${supportedFeatures.length ? `<li><strong>Supported features:</strong> ${supportedFeatures.join(', ')}</li>` : ''}
             </ul>
           </section>
 
           <section class="memizy-landing-card" style="grid-column: span 12;">
             <h2>Getting Started</h2>
-            <p>Use the sandbox to preview the plugin exactly the way Memizy will launch it, or open the docs for implementation details.</p>
+            <p>Open Memizy Learn to launch this plugin in production mode, or run it locally in the built-in host/player simulator.</p>
             <ul class="memizy-landing-list">
               <li>
-                <strong>Learn more:</strong>
-                <a href="${docsUrl}" target="_blank" rel="noopener noreferrer">Multiplayer SDK Documentation</a>
+                <strong>Play now:</strong>
+                <a href="${docsUrl}" target="_blank" rel="noopener noreferrer">Open in Memizy Learn</a>
               </li>
               <li>
                 <strong>Try it out:</strong>
-                <a href="${sandboxUrl}" target="_blank" rel="noopener noreferrer">Open in Sandbox</a>
+                <span>Run local host/player sandbox directly on this page.</span>
               </li>
             </ul>
           </section>
 
           <section class="memizy-landing-actions">
-            <a href="${sandboxUrl}" class="memizy-landing-button memizy-landing-button-primary" target="_blank" rel="noopener noreferrer">
-              🎮 Try in Sandbox
-            </a>
             <a href="${docsUrl}" class="memizy-landing-button memizy-landing-button-secondary" target="_blank" rel="noopener noreferrer">
-              📚 Read Docs
+              🚀 Play now
             </a>
+            <button type="button" class="memizy-landing-button memizy-landing-button-secondary" data-memizy-try-local>
+              🧪 Try locally
+            </button>
           </section>
         </main>
 
@@ -419,6 +425,16 @@ export function renderLandingPageIfNeeded(
       </div>
     </div>
   `
+
+  const tryLocalButton = app.querySelector<HTMLButtonElement>('[data-memizy-try-local]')
+  tryLocalButton?.addEventListener('click', () => {
+    createLocalSandbox({
+      mount: app,
+      pluginUrl,
+      title: `${name} - Local Sandbox`,
+      autoInit: true,
+    })
+  })
 
   return true
 }

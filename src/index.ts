@@ -8,6 +8,14 @@ export type {
   InitContext,
   HostConfig,
   PlayerConfig,
+  PluginReadyMessage,
+  InitSessionMessage,
+  LegacyMultiInitMessage,
+  StateUpdateMessage,
+  PlayerJoinedMessage,
+  PlayerLeftMessage,
+  MultiActionMessage,
+  MultiBroadcastMessage,
 } from './types'
 
 /**
@@ -25,3 +33,10 @@ export {
   isInsideIframe,
   renderLandingPageIfNeeded,
 } from './manifest'
+
+/**
+ * Local sandbox utilities for simulating host and player runtime.
+ */
+export type { LocalSandboxOptions, LocalSandboxController } from './sandbox'
+
+export { createLocalSandbox } from './sandbox'
