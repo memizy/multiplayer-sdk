@@ -43,6 +43,10 @@ const hostInitContext = {
     },
   ],
   assets: {},
+  settings: {
+    timePerQuestion: 20,
+    shuffle: true,
+  },
 }
 
 const playerInitContext = {

@@ -6,6 +6,10 @@
     <title>Quiz Plugin Example</title>
     <style>
       :root {
+        --blue: #2563eb;
+        --orange: #f97316;
+        --green: #16a34a;
+        --red: #dc2626;
         font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
         color: #182131;
       }
@@ -22,10 +26,11 @@
       }
 
       .card {
-        border: 1px solid #d6deea;
+        border: 2px solid var(--orange);
         border-radius: 0.8rem;
         padding: 1rem;
         background: #f8fafe;
+        box-shadow: 0 10px 24px rgba(37, 99, 235, 0.08);
       }
 
       .row {
@@ -35,16 +40,35 @@
       }
 
       button {
-        border: 1px solid #22344f;
-        background: #20344f;
+        border: 1px solid var(--blue);
+        background: var(--blue);
         color: #fff;
         border-radius: 0.5rem;
         padding: 0.5rem 0.8rem;
         cursor: pointer;
+        font-weight: 600;
+      }
+
+      button:hover {
+        background: var(--orange);
+        border-color: var(--orange);
       }
 
       ul {
         margin: 0.5rem 0 0;
+      }
+
+      h1 {
+        color: var(--blue);
+      }
+
+      h2 {
+        color: var(--orange);
+      }
+
+      pre {
+        border-left: 4px solid var(--green);
+        padding-left: 0.75rem;
       }
     </style>
   </head>

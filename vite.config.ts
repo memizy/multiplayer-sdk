@@ -8,7 +8,11 @@ export default defineConfig(({ command }) => {
   }
 
   return {
-    plugins: [dts()],
+    plugins: [
+      dts({
+        rollupTypes: true,
+      })
+    ],
     build: {
       lib: {
         entry: resolve(__dirname, 'src/index.ts'),

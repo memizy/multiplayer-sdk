@@ -1,3 +1,5 @@
+import type { OQSEItem } from '@memizy/oqse'
+
 export type GamePhase =
   | 'waiting'
   | 'question'
@@ -24,7 +26,7 @@ export interface GameState {
 
 export interface InitContext {
   pin: string
-  items: any[]
+  items: OQSEItem[]
   assets: Record<string, any>
   settings?: Record<string, any>
   players?: MultiPlayer[]

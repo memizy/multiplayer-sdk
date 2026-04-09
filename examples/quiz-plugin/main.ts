@@ -15,11 +15,16 @@ const renderHostPanel = () => {
   const players = hostPlayers
     .map((player) => `<li>${player.name} (score: ${player.score})</li>`)
     .join('')
+  const settings = hostContext?.settings ?? {}
+  const settingsText = Object.entries(settings)
+    .map(([key, value]) => `${key}=${String(value)}`)
+    .join(', ')
 
   render(`
     <section class="card">
       <h1>Host View</h1>
       <p>PIN: ${hostContext?.pin ?? '-'}</p>
+      <p>Settings received: ${settingsText || 'none'}</p>
       <div class="row">
         <button id="start-quiz" type="button">Start Quiz</button>
       </div>
