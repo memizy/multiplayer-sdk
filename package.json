@@ -1,6 +1,6 @@
 {
   "name": "@memizy/multiplayer-sdk",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "TypeScript SDK for building Memizy multiplayer plugins with a declarative postMessage API.",
   "keywords": [
     "memizy",
