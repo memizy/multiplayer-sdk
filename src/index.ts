@@ -3,6 +3,7 @@
  */
 export type {
   GamePhase,
+  RunMode,
   MultiPlayer,
   GameState,
   InitContext,
@@ -16,6 +17,9 @@ export type {
   PlayerLeftMessage,
   MultiActionMessage,
   MultiBroadcastMessage,
+  PrepareGameMessage,
+  StartGameMessage,
+  MultiReadyMessage,
 } from './types'
 
 /**

@@ -7,6 +7,8 @@ export type GamePhase =
   | 'leaderboard'
   | 'finished'
 
+export type RunMode = 'host-settings' | 'host-game' | 'client-game'
+
 export interface MultiPlayer {
   id: string
   name: string
@@ -28,6 +30,7 @@ export interface InitContext {
   pin: string
   items: OQSEItem[]
   assets: Record<string, unknown>
+  runMode?: RunMode
   settings?: Record<string, unknown>
   players?: MultiPlayer[]
   myPlayerId?: string
@@ -90,8 +93,23 @@ export interface MultiBroadcastMessage {
   payload: GameState
 }
 
+export interface PrepareGameMessage {
+  type: 'PREPARE_GAME'
+  payload: { players: MultiPlayer[] }
+}
+
+export interface StartGameMessage {
+  type: 'START_GAME'
+}
+
+export interface MultiReadyMessage {
+  type: 'MULTI_READY'
+}
+
 export interface HostConfig<State> {
   onInit?: (context: InitContext) => void
+  onPrepareGame?: (players: MultiPlayer[]) => void
+  onStartGame?: () => void
   onPlayerJoined?: (player: MultiPlayer) => void
   onPlayerLeft?: (playerId: string) => void
   onPlayerAction?: (action: { type: string; data?: unknown }, playerId: string) => void
@@ -101,5 +119,7 @@ export interface HostConfig<State> {
 
 export interface PlayerConfig<State> {
   onInit?: (context: InitContext) => void
+  onPrepareGame?: (players: MultiPlayer[]) => void
+  onStartGame?: () => void
   onStateUpdate?: (state: State) => void
 }

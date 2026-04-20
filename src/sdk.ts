@@ -1,3 +1,4 @@
+import { prepareRichTextForDisplay, tokenizeOqseTags } from '@memizy/oqse'
 import type {
   HostConfig,
   InitContext,
@@ -5,14 +6,19 @@ import type {
   MultiPlayer,
   MultiActionMessage,
   MultiBroadcastMessage,
+  MultiReadyMessage,
   PlayerConfig,
   PlayerJoinedMessage,
   PlayerLeftMessage,
+  PrepareGameMessage,
   PluginReadyMessage,
+  StartGameMessage,
   StateUpdateMessage,
 } from './types'
 
 type Role = 'host' | 'player' | null
+
+const SDK_VERSION = '0.3.0'
 
 interface MessageEnvelope {
   type: string
@@ -27,10 +33,11 @@ export function createMultiplayerPlugin<State>() {
   let playerConfig: PlayerConfig<State> = {}
   let isStarted = false
   let readySent = false
+  let sessionAssets: Record<string, any> = {}
 
   const cloneForPostMessage = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T
 
-  const postToParent = (message: PluginReadyMessage | InitSessionMessage | MultiBroadcastMessage | MultiActionMessage | PlayerJoinedMessage | PlayerLeftMessage | StateUpdateMessage | Record<string, unknown>) => {
+  const postToParent = (message: PluginReadyMessage | InitSessionMessage | MultiBroadcastMessage | MultiActionMessage | PlayerJoinedMessage | PlayerLeftMessage | StateUpdateMessage | MultiReadyMessage | Record<string, unknown>) => {
     window.parent.postMessage(cloneForPostMessage(message), '*')
   }
 
@@ -44,9 +51,13 @@ export function createMultiplayerPlugin<State>() {
       type: 'PLUGIN_READY',
       payload: {
         id: window.location.origin + window.location.pathname,
-        version: '0.2.0',
+        version: SDK_VERSION,
       },
     })
+  }
+
+  const postReadyToStart = () => {
+    postToParent({ type: 'MULTI_READY' } as MultiReadyMessage)
   }
 
   const defineHost = (config: HostConfig<State>) => {
@@ -106,6 +117,7 @@ export function createMultiplayerPlugin<State>() {
     if (message.type === 'INIT_SESSION' || message.type === 'MULTI_INIT') {
       role = extractRole(message)
       const context = extractContext(message)
+      sessionAssets = (context?.assets as Record<string, any>) ?? {}
 
       if (role === 'host') {
         hostConfig.onInit?.(context ?? {
@@ -127,6 +139,20 @@ export function createMultiplayerPlugin<State>() {
         })
       }
 
+      return
+    }
+
+    if (message.type === 'PREPARE_GAME') {
+      const payload = message.payload as PrepareGameMessage['payload']
+      if (role === 'host') hostConfig.onPrepareGame?.(payload.players)
+      if (role === 'player') playerConfig.onPrepareGame?.(payload.players)
+      return
+    }
+
+    if (message.type === 'START_GAME') {
+      const startMessage = message as StartGameMessage
+      if (startMessage.type === 'START_GAME' && role === 'host') hostConfig.onStartGame?.()
+      if (startMessage.type === 'START_GAME' && role === 'player') playerConfig.onStartGame?.()
       return
     }
 
@@ -179,7 +205,39 @@ export function createMultiplayerPlugin<State>() {
     definePlayer,
     host,
     player,
+    postReadyToStart,
     postReady,
+    parseTextTokens: (rawText: string) => {
+      return tokenizeOqseTags(rawText)
+    },
+    renderHtml: (
+      rawText: string,
+      options?: {
+        markdownParser?: (text: string) => string | Promise<string>
+        sanitizer?: (html: string) => string
+      },
+    ) => {
+      const mdParser = (text: string) => {
+        const parsed = options?.markdownParser ? options.markdownParser(text) : text
+        return typeof parsed === 'string' ? parsed : text
+      }
+      const htmlSanitizer = options?.sanitizer ? options.sanitizer : (html: string) => html
+
+      return prepareRichTextForDisplay(rawText, undefined, {
+        markdownParser: mdParser,
+        htmlSanitizer,
+        assetReplacer: (key) => {
+          const media = sessionAssets[key] as any
+          if (!media) return ''
+          const url = media.value
+          if (media.type === 'image') return `<img src="${url}" alt="${media.altText || ''}" class="oqse-asset-img" />`
+          if (media.type === 'audio') return `<audio src="${url}" controls class="oqse-asset-audio"></audio>`
+          if (media.type === 'video') return `<video src="${url}" controls class="oqse-asset-video"></video>`
+          return ''
+        },
+        blankReplacer: (key) => `<input type="text" data-blank="${key}" class="oqse-blank" />`,
+      })
+    },
     start,
   }
 }

@@ -20,6 +20,8 @@ export interface LocalSandboxController {
   destroy: () => void
   simulatePlayerJoin: (player?: Partial<MultiPlayer>) => void
   simulatePlayerLeave: (playerId?: string) => void
+  simulatePrepareGame: () => void
+  simulateStartGame: () => void
   sendHostInit: (context?: Partial<InitContext>) => void
   sendPlayerInit: (context?: Partial<InitContext>) => void
 }
@@ -442,6 +444,7 @@ function normalizeHostContext(context?: Partial<InitContext>): InitContext {
     pin: context?.pin ?? '123456',
     items: context?.items ?? [],
     assets: context?.assets ?? {},
+    runMode: context?.runMode ?? 'host-game',
     settings: context?.settings ?? {},
     players: context?.players ?? [],
     myPlayerId: context?.myPlayerId,
@@ -454,6 +457,7 @@ function normalizePlayerContext(context?: Partial<InitContext>): InitContext {
     pin: context?.pin ?? '123456',
     items: context?.items ?? [],
     assets: context?.assets ?? {},
+    runMode: context?.runMode ?? 'client-game',
     settings: context?.settings ?? {},
     players: context?.players ?? [],
     myPlayerId: context?.myPlayerId ?? 'player-1',
@@ -481,6 +485,8 @@ export function createLocalSandbox(options: LocalSandboxOptions): LocalSandboxCo
         </div>
         <div class="memizy-sandbox-actions">
           <button type="button" class="memizy-sandbox-button memizy-sandbox-button-primary memizy-sandbox-button-compact" data-action="init">Initialize session</button>
+          <button type="button" class="memizy-sandbox-button memizy-sandbox-button-secondary memizy-sandbox-button-compact" data-action="prepare-game">Simulate PREPARE_GAME</button>
+          <button type="button" class="memizy-sandbox-button memizy-sandbox-button-secondary memizy-sandbox-button-compact" data-action="start-game">Simulate START_GAME</button>
           <button type="button" class="memizy-sandbox-button memizy-sandbox-button-secondary memizy-sandbox-button-compact" data-action="join">Add player</button>
           <button type="button" class="memizy-sandbox-button memizy-sandbox-button-secondary memizy-sandbox-button-compact" data-action="leave">Remove player</button>
           <button type="button" class="memizy-sandbox-button memizy-sandbox-button-secondary memizy-sandbox-button-compact" data-action="open-modal">Settings & AI</button>
@@ -547,6 +553,8 @@ export function createLocalSandbox(options: LocalSandboxOptions): LocalSandboxCo
   const hostFrame = root.querySelector<HTMLIFrameElement>('[data-sandbox-host-frame]')
   const playerFrame = root.querySelector<HTMLIFrameElement>('[data-sandbox-player-frame]')
   const initButton = root.querySelector<HTMLButtonElement>('[data-action="init"]')
+  const prepareGameButton = root.querySelector<HTMLButtonElement>('[data-action="prepare-game"]')
+  const startGameButton = root.querySelector<HTMLButtonElement>('[data-action="start-game"]')
   const joinButton = root.querySelector<HTMLButtonElement>('[data-action="join"]')
   const leaveButton = root.querySelector<HTMLButtonElement>('[data-action="leave"]')
   const openModalButton = root.querySelector<HTMLButtonElement>('[data-action="open-modal"]')
@@ -561,7 +569,7 @@ export function createLocalSandbox(options: LocalSandboxOptions): LocalSandboxCo
   const aiNotesField = root.querySelector<HTMLTextAreaElement>('[data-ai-notes]')
   const aiOutputField = root.querySelector<HTMLTextAreaElement>('[data-ai-output]')
 
-  if (!hostFrame || !playerFrame || !initButton || !joinButton || !leaveButton || !openModalButton || !closeModalButton || !modalOverlay || !loadSetButton || !defaultSetButton || !buildAiButton || !copyAiButton || !setSourceField || !aiTopicField || !aiNotesField || !aiOutputField) {
+  if (!hostFrame || !playerFrame || !initButton || !prepareGameButton || !startGameButton || !joinButton || !leaveButton || !openModalButton || !closeModalButton || !modalOverlay || !loadSetButton || !defaultSetButton || !buildAiButton || !copyAiButton || !setSourceField || !aiTopicField || !aiNotesField || !aiOutputField) {
     throw new Error('Failed to construct local sandbox UI.')
   }
 
@@ -662,6 +670,27 @@ export function createLocalSandbox(options: LocalSandboxOptions): LocalSandboxCo
     initialized = true
     sendHostInit()
     sendPlayerInit()
+  }
+
+  const simulatePrepareGame = () => {
+    const payload = { players: [...players] }
+    sendToFrame(hostFrame, {
+      type: 'PREPARE_GAME',
+      payload,
+    })
+    sendToFrame(playerFrame, {
+      type: 'PREPARE_GAME',
+      payload,
+    })
+  }
+
+  const simulateStartGame = () => {
+    sendToFrame(hostFrame, {
+      type: 'START_GAME',
+    })
+    sendToFrame(playerFrame, {
+      type: 'START_GAME',
+    })
   }
 
   const loadSetAndRefresh = async (source: string) => {
@@ -804,6 +833,8 @@ export function createLocalSandbox(options: LocalSandboxOptions): LocalSandboxCo
   })
 
   initButton.addEventListener('click', init)
+  prepareGameButton.addEventListener('click', simulatePrepareGame)
+  startGameButton.addEventListener('click', simulateStartGame)
   joinButton.addEventListener('click', () => simulatePlayerJoin())
   leaveButton.addEventListener('click', () => simulatePlayerLeave())
   
@@ -850,6 +881,8 @@ export function createLocalSandbox(options: LocalSandboxOptions): LocalSandboxCo
     destroy,
     simulatePlayerJoin,
     simulatePlayerLeave,
+    simulatePrepareGame,
+    simulateStartGame,
     sendHostInit,
     sendPlayerInit,
   }

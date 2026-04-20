@@ -1,6 +1,6 @@
 {
   "name": "@memizy/multiplayer-sdk",
-  "version": "0.2.3",
+  "version": "0.3.0",
   "description": "TypeScript SDK for building Memizy multiplayer plugins with a declarative postMessage API.",
   "keywords": [
     "memizy",
@@ -40,11 +40,13 @@
     "build": "tsc && vite build && tsx scripts/fix-types-entry.ts",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "@memizy/oqse": "^0.1.4"
+  },
   "peerDependencies": {
-    "@memizy/oqse": "^0.1.1"
+    "@memizy/oqse": "^0.1.4"
   },
   "devDependencies": {
-    "@memizy/oqse": "^0.1.1",
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.4",
