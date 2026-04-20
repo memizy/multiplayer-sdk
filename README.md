@@ -97,6 +97,30 @@ For OQSE content, the SDK now exposes:
 </script>
 ```
 
+For multiplayer host behavior, declare Memizy-specific flags in `appSpecific.memizy.multiplayer` (instead of extending universal OQSE fields):
+
+```json
+{
+	"appSpecific": {
+		"memizy": {
+			"multiplayer": {
+				"apiVersion": "0.3",
+				"players": {
+					"min": 2,
+					"max": 60,
+					"recommended": 30
+				},
+				"supportsLateJoin": true,
+				"supportsReconnect": true,
+				"supportsTeams": false,
+				"requiresHostScreen": true,
+				"clientOrientation": "portrait"
+			}
+		}
+	}
+}
+```
+
 ## Standalone usage
 
 When the plugin is opened directly in the browser, `renderLandingPageIfNeeded()` shows a lightweight landing page with manifest details and links to the docs and sandbox.

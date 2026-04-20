@@ -4,6 +4,7 @@
 
 - [Overview](#overview)
 - [Architecture](#architecture)
+- [OQSE Manifest Configuration (`appSpecific`)](#oqse-manifest-configuration-appspecific)
 - [Lifecycle](#lifecycle)
 - [Message Envelope](#message-envelope)
 - [Message Protocol](#message-protocol)
@@ -56,6 +57,49 @@ Typical intent:
 
 - In `host` role, SDK routes player lifecycle and action events to host callbacks.
 - In `player` role, SDK routes state updates and start lifecycle hooks to player callbacks.
+
+---
+
+## OQSE Manifest Configuration (`appSpecific`)
+
+Multiplayer-specific host/runtime hints must be declared in `appSpecific.memizy.multiplayer`.
+
+This keeps the universal OQSE surface clean and portable while allowing Memizy-specific multiplayer behavior to be configured explicitly.
+
+```json
+{
+  "capabilities": {
+    "actions": ["render"],
+    "types": ["mcq-single"]
+  },
+  "appSpecific": {
+    "memizy": {
+      "multiplayer": {
+        "apiVersion": "0.3",
+        "players": {
+          "min": 2,
+          "max": 60,
+          "recommended": 30
+        },
+        "supportsLateJoin": true,
+        "supportsReconnect": true,
+        "supportsTeams": false,
+        "requiresHostScreen": true,
+        "clientOrientation": "portrait"
+      }
+    }
+  }
+}
+```
+
+Field reference:
+
+- `apiVersion`: Must match the SDK protocol version (for example `"0.3"`).
+- `supportsLateJoin` (`boolean`): If `true`, the PIN code remains active after the host starts the game. The plugin must handle `PLAYER_JOINED` messages during the `host-game` phase. If `false`, the host app locks the room on start.
+- `supportsReconnect` (`boolean`): If `true`, the host app uses `sessionStorage` to automatically reconnect players who drop out. The plugin must respond to `PLAYER_JOINED` with a `STATE_UPDATE` for that specific player.
+- `supportsTeams` (`boolean`): If `true`, the host app's native lobby can show a team selection UI, and players can arrive in `PREPARE_GAME` with team data.
+- `requiresHostScreen` (`boolean`): If `true`, indicates players cannot play by looking only at their phones; the host app can remind the teacher to project the host screen.
+- `clientOrientation` (`"portrait" | "landscape"`): Hint for the host app to show a rotate-device overlay for mobile players before launching `client-game`.
 
 ---
 
