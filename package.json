@@ -43,9 +43,6 @@
   "dependencies": {
     "@memizy/oqse": "^0.1.4"
   },
-  "peerDependencies": {
-    "@memizy/oqse": "^0.1.4"
-  },
   "devDependencies": {
     "tsx": "^4.21.0",
     "typescript": "~6.0.2",

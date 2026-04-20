@@ -44,3 +44,16 @@ export {
 export type { LocalSandboxOptions, LocalSandboxController } from './sandbox'
 
 export { createLocalSandbox } from './sandbox'
+
+/**
+ * Re-exported OQSE core types for convenience.
+ * Developers can type their payloads directly from the multiplayer SDK.
+ */
+export type {
+  OQSEItem,
+  OQSEMeta,
+  MediaObject,
+  ProgressRecord,
+  StatsObject as ProgressStats,
+  LastAnswerObject as ProgressLastAnswer,
+} from '@memizy/oqse'
