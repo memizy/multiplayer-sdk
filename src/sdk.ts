@@ -96,6 +96,7 @@ export function createMultiplayerPlugin<State>() {
       assets: maybeContext.assets ?? {},
       settings: maybeContext.settings ?? {},
       players: maybeContext.players ?? [],
+      runMode: maybeContext.runMode ?? 'host-settings',
       myPlayerId: maybeContext.myPlayerId ?? maybeContext.playerId,
       myPlayerName: maybeContext.myPlayerName ?? maybeContext.playerName,
     }
