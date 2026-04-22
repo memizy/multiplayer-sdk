@@ -42,7 +42,12 @@
     "dev": "vite build --watch",
     "build": "tsc && vite build && tsx scripts/fix-types-entry.ts",
     "typecheck": "tsc --noEmit",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "example:dev": "vite --config example/vite.config.ts",
+    "example:build": "vite build --config example/vite.config.ts",
+    "example:build:pages": "vite build --config example/vite.config.ts --base=/multiplayer-sdk/",
+    "example:preview": "vite preview --config example/vite.config.ts",
+    "example:typecheck": "tsc --noEmit -p example/tsconfig.json"
   },
   "dependencies": {
     "@memizy/oqse": "^0.1.4",
