@@ -1,14 +1,17 @@
 {
   "name": "@memizy/multiplayer-sdk",
-  "version": "0.3.1",
-  "description": "TypeScript SDK for building Memizy multiplayer plugins with a declarative postMessage API.",
+  "version": "0.4.0",
+  "description": "TypeScript SDK for building Memizy multiplayer plugins. Penpal-based RPC, mutative-based state sync, namespaced protocol (sys/settings/room/game).",
   "keywords": [
     "memizy",
     "multiplayer",
     "sdk",
-    "postmessage",
+    "penpal",
+    "mutative",
+    "rpc",
     "typescript",
-    "plugin"
+    "plugin",
+    "oqse"
   ],
   "license": "MIT",
   "repository": {
@@ -38,10 +41,13 @@
   "scripts": {
     "dev": "vite build --watch",
     "build": "tsc && vite build && tsx scripts/fix-types-entry.ts",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },
   "dependencies": {
-    "@memizy/oqse": "^0.1.4"
+    "@memizy/oqse": "^0.1.4",
+    "mutative": "^1.3.0",
+    "penpal": "^7.0.6"
   },
   "devDependencies": {
     "tsx": "^4.21.0",

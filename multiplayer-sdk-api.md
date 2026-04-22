@@ -1,86 +1,77 @@
-# Multiplayer SDK API Specification v0.3
+# Multiplayer SDK API Specification v0.4
 
 ## Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [OQSE Manifest Configuration (`appSpecific`)](#oqse-manifest-configuration-appspecific)
-- [Lifecycle](#lifecycle)
-- [Message Envelope](#message-envelope)
-- [Message Protocol](#message-protocol)
-  - [Host App -> Plugin messages](#host-app---plugin-messages)
-  - [Plugin -> Host App messages](#plugin---host-app-messages)
-- [Message Reference Table](#message-reference-table)
-- [SDK Runtime API](#sdk-runtime-api)
-- [Text Processing Facade](#text-processing-facade)
-- [Type Facade Exports](#type-facade-exports)
-- [Current Implementation Notes and Gaps](#current-implementation-notes-and-gaps)
+- [Role & Phase Model](#role--phase-model)
+- [Transport: Penpal RPC](#transport-penpal-rpc)
+- [Protocol Domains](#protocol-domains)
+  - [`sys*` - System](#sys---system)
+  - [`settings*` - Host-only authoring](#settings---host-only-authoring)
+  - [`room*` - Roster & synchronization](#room---roster--synchronization)
+  - [`game*` - Authoritative gameplay](#game---authoritative-gameplay)
+- [Inbound Plugin Methods (`PluginApi`)](#inbound-plugin-methods-pluginapi)
+- [Init Session Payload](#init-session-payload)
+- [State Synchronization Model](#state-synchronization-model)
+- [SDK Runtime Surface](#sdk-runtime-surface)
+  - [Constructor & Connection](#constructor--connection)
+  - [Namespaced Managers](#namespaced-managers)
+  - [Lifecycle Handlers](#lifecycle-handlers)
+- [Error Taxonomy](#error-taxonomy)
+- [Standalone Mode](#standalone-mode)
+- [Migration from v0.3](#migration-from-v03)
 
 ---
 
 ## Overview
 
-This document describes the real protocol and SDK behavior currently implemented in `@memizy/multiplayer-sdk` version `0.3.0`.
+This document describes the protocol and SDK behaviour implemented by `@memizy/multiplayer-sdk` v0.4.
 
-The SDK is designed for Split-Lobby multiplayer sessions with three start phases:
+Compared to v0.3 the SDK is a ground-up rewrite:
 
-1. `Init`
-2. `Prepare`
-3. `Start`
-
-The same SDK bundle can run in two roles, selected by host initialization:
-
-- `host`
-- `player`
-
-The role is assigned from incoming `INIT_SESSION` or legacy `MULTI_INIT` messages.
+- **Penpal v7** replaces hand-rolled `postMessage` envelopes. Every exchange between plugin and host is an async RPC call with typed arguments and return values.
+- **Mutative** replaces whole-object rebroadcasts. Game state travels as minimal JSON patches.
+- **Namespaced protocol**. The single `MULTI_ACTION` bag from v0.3 is gone; every call lives in a `sys`, `settings`, `room`, or `game` domain that matches its responsibility.
+- **Strict role model**. Host and player plugins share one SDK bundle but the accessor `sdk.host` / `sdk.player` throws `SdkRoleError` when used from the wrong role.
+- **Consumer-only content**. Multiplayer plugins can no longer upload assets, mutate items, or persist per-item progress. That is the single-player SDK's (`@memizy/plugin-sdk`) job.
 
 ---
 
 ## Architecture
 
-### Split-Lobby run modes
+Three components share responsibility for a live session:
 
-`InitContext.runMode` can carry one of these values:
+| Component | Runs in | Responsibilities |
+| --- | --- | --- |
+| **Host application** (Vue) | Teacher & student devices | WebSocket / Supabase transport, manifest validation, lobby (PIN, teams, rotation / host-screen gating), routing RPC calls. |
+| **Multiplayer SDK** | Iframe (this package) | Penpal handshake, role-aware namespaced managers, mutative state snapshots, standalone fallback. |
+| **Multiplayer Plugin** | Iframe | Pure game logic. Reads items, writes settings, authors game state, dispatches events, consumes player actions. |
 
-- `host-settings`
-- `host-game`
-- `client-game`
+The plugin never talks to the network directly. All traffic is:
 
-Typical intent:
-
-- `host-settings`: teacher setup UI before game launch.
-- `host-game`: teacher/game board runtime.
-- `client-game`: student controller runtime.
-
-### Role-specific behavior
-
-- In `host` role, SDK routes player lifecycle and action events to host callbacks.
-- In `player` role, SDK routes state updates and start lifecycle hooks to player callbacks.
+```
+Plugin  <-- Penpal -->  Host App  <-- Supabase/WebSocket -->  Other Host Apps
+```
 
 ---
 
 ## OQSE Manifest Configuration (`appSpecific`)
 
-Multiplayer-specific host/runtime hints must be declared in `appSpecific.memizy.multiplayer`.
-
-This keeps the universal OQSE surface clean and portable while allowing Memizy-specific multiplayer behavior to be configured explicitly.
+Multiplayer-specific manifest hints live under `appSpecific.memizy.multiplayer` (unchanged from v0.3 beyond the `apiVersion` bump):
 
 ```json
 {
   "capabilities": {
     "actions": ["render"],
-    "types": ["mcq-single"]
+    "types":   ["mcq-single"]
   },
   "appSpecific": {
     "memizy": {
       "multiplayer": {
-        "apiVersion": "0.3",
-        "players": {
-          "min": 2,
-          "max": 60,
-          "recommended": 30
-        },
+        "apiVersion": "0.4",
+        "players": { "min": 2, "max": 60, "recommended": 30 },
         "supportsLateJoin": true,
         "supportsReconnect": true,
         "supportsTeams": false,
@@ -92,334 +83,300 @@ This keeps the universal OQSE surface clean and portable while allowing Memizy-s
 }
 ```
 
-Field reference:
+| Field | Who enforces it |
+| --- | --- |
+| `apiVersion` | Host app (refuses incompatible SDKs). |
+| `players.{min,max,recommended}` | Host app (lobby sizing). |
+| `supportsLateJoin` | Host app (keeps PIN open) + host plugin (handles late-join via `onPlayerJoin` + `sendStateTo`). |
+| `supportsReconnect` | Host app (persists player ids) + host plugin (same path as late-join). |
+| `supportsTeams` | Host app (adds team picker). Plugins see `room.teams` populated. |
+| `requiresHostScreen` | Host app only. Plugins MUST NOT implement this. |
+| `clientOrientation` | Host app only. Plugins MUST NOT implement this. |
 
-- `apiVersion`: Must match the SDK protocol version (for example `"0.3"`).
-- `supportsLateJoin` (`boolean`): If `true`, the PIN code remains active after the host starts the game. The plugin must handle `PLAYER_JOINED` messages during the `host-game` phase. If `false`, the host app locks the room on start.
-- `supportsReconnect` (`boolean`): If `true`, the host app uses `sessionStorage` to automatically reconnect players who drop out. The plugin must respond to `PLAYER_JOINED` with a `STATE_UPDATE` for that specific player.
-- `supportsTeams` (`boolean`): If `true`, the host app's native lobby can show a team selection UI, and players can arrive in `PREPARE_GAME` with team data.
-- `requiresHostScreen` (`boolean`): If `true`, indicates players cannot play by looking only at their phones; the host app can remind the teacher to project the host screen.
-- `clientOrientation` (`"portrait" | "landscape"`): Hint for the host app to show a rotate-device overlay for mobile players before launching `client-game`.
-
----
-
-## Lifecycle
-
-Current runtime lifecycle in the SDK:
-
-1. Plugin calls `start()`.
-2. SDK attaches `window` message listener.
-3. SDK sends `PLUGIN_READY` once (id + version).
-4. Host App responds with `INIT_SESSION` (or legacy `MULTI_INIT`).
-5. SDK resolves `role` and normalized `InitContext`, then calls:
-   - `defineHost().onInit(context)` for host role
-   - `definePlayer().onInit(context)` for player role
-6. Host App may send `PREPARE_GAME` with finalized players.
-7. Host App may send `START_GAME` to start active gameplay.
-8. Plugin may send `MULTI_READY` when loading/preparation is complete.
+Use `readMultiplayerConfig(manifest)` exported by the SDK to extract the block in a typed way.
 
 ---
 
-## Message Envelope
+## Role & Phase Model
 
-The SDK expects postMessage envelopes with a `type` string and optional `payload`.
+Every plugin instance sees exactly one role and four possible phases.
 
-```ts
-interface MessageEnvelope {
-  type: string
-  payload?: unknown
-  role?: 'host' | 'player' | null
-  context?: unknown
-}
+### Role
+
+`role: 'host' | 'player'` is assigned by the host application and returned in the init payload. The SDK binds the appropriate set of managers:
+
+- `role === 'host'` - `sdk.sys`, `sdk.settings`, `sdk.room`, `sdk.host`, `sdk.text`.
+- `role === 'player'` - `sdk.sys`, `sdk.room`, `sdk.player`, `sdk.text`, plus read-only `sdk.settings.get()`.
+
+### Phase
+
+`phase: 'host-settings' | 'synchronizing' | 'playing' | 'finished'`.
+
+```
+host-settings ---> synchronizing ---> playing ---> finished
 ```
 
-For initialization compatibility:
+| Phase | What happens |
+| --- | --- |
+| `host-settings` | Only the host plugin runs. The teacher edits settings. |
+| `synchronizing` | Teacher pressed Start. Player iframes load; each signals `room.clientReady()`. Host waits (with a grace timeout) via `onPlayerReady`. |
+| `playing` | Host called `room.startGame()`. Authoritative state flows. |
+| `finished` | Host called `host.endGame(result)`. Clients may display scoreboards. |
 
-- Role is extracted from: `message.role`, `message.context.role`, or `message.payload.role`.
-- Context is extracted from: `message.context` or `message.payload`.
+Phase transitions arrive through `onPhaseChange(phase)`.
 
 ---
 
-## Message Protocol
+## Transport: Penpal RPC
 
-## Host App -> Plugin messages
+The SDK performs the Penpal handshake automatically during `sdk.connect()`. Two flat surfaces are exposed:
 
-### INIT_SESSION
+- `HostApi` - methods the host exposes, called by the plugin through a Penpal remote proxy.
+- `PluginApi` - methods the plugin exposes, called by the host through its remote proxy.
 
-Primary initialization message.
+Every method is async and serialises arguments via the structured clone algorithm. `File`/`Blob` arguments are NOT used in the multiplayer SDK (assets are already resolved in the init payload).
+
+---
+
+## Protocol Domains
+
+### `sys*` - System
+
+| Method | Dir | Meaning |
+| --- | --- | --- |
+| `sysReady(identity)` | Plugin -> Host | Called once by the SDK after handshake. Returns the init payload. |
+| `sysRequestResize(request)` | Plugin -> Host | Ask the host iframe container to resize. |
+| `sysReportError(error)` | Plugin -> Host | Non-fatal error telemetry. |
+| `sysExit()` | Plugin -> Host | Voluntarily close this plugin instance. |
+
+### `settings*` - Host-only authoring
+
+Valid only during `host-settings`. The host app persists the settings object and uses them when advancing to `synchronizing`.
+
+| Method | Semantics |
+| --- | --- |
+| `settingsReplace(settings)` | Wholesale replace. |
+| `settingsApplyPatches(patches)` | Apply mutative-generated JSON patches. |
+| `settingsSetValid(valid)` | Toggle the host app's "Start game" button. |
+
+### `room*` - Roster & synchronization
+
+| Method | Role | Meaning |
+| --- | --- | --- |
+| `roomClientReady()` | Player | "My UI is rendered, I'm ready for gameplay." Forwarded to the host plugin as `onPlayerReady`. |
+| `roomHostReady()` | Host | "I finished bootstrapping and I can accept the Start command." Informational for the host app. |
+| `roomStartGame()` | Host | Authoritatively promote the session to `playing`. |
+
+### `game*` - Authoritative gameplay
+
+| Method | Role | Meaning |
+| --- | --- | --- |
+| `gameBroadcastState(state)` | Host | Replace the full game state; sent to every player as `game:state:sync`. |
+| `gameBroadcastStatePatches(patches)` | Host | Apply a diff to every player's state (`game:state:patch`). |
+| `gameSendStateTo(playerId, state)` | Host | Send the current full state to a single player (reconnect / late-join). |
+| `gameSendEvent(target, event)` | Host | Transient event to `'all'`, a playerId, or an array. Never persisted. |
+| `gameEndSession(result)` | Host | Close the game and trigger `onGameEnd` on every player. |
+| `gameSendAction(action)` | Player | Submit a player intent. The host plugin is the authority. |
+
+---
+
+## Inbound Plugin Methods (`PluginApi`)
+
+Implemented by the SDK and exposed to the host. Plugin authors register handlers via `sdk.on*(...)`.
+
+| Method | Who receives | Description |
+| --- | --- | --- |
+| `onConfigUpdate(config)` | Both | Theme / locale changed. |
+| `onSessionAborted(reason)` | Both | Session terminated externally (`user_exit`, `timeout`, `host_error`, `kicked`, `room_closed`). |
+| `onPhaseChange(phase)` | Both | Lifecycle advanced. |
+| `onPlayerJoin(player, meta)` | Host | A player joined. `meta.isReconnect` / `meta.isLateJoin` hint the correct response. |
+| `onPlayerLeave(playerId)` | Host | A player left. |
+| `onPlayerReady(playerId)` | Host | A player called `roomClientReady()`. |
+| `onPlayerAction(playerId, action)` | Host | A player dispatched an action. |
+| `onStartGameRequested()` | Host | Teacher pressed "Start game" in the host UI. Host plugin should perform final prep. |
+| `onState(state)` | Player | Full state broadcast. |
+| `onStatePatches(patches)` | Player | Patches on top of the previous state. |
+| `onEvent(event)` | Player | Transient event. |
+| `onGameEnd(result)` | Player | Session ended. |
+
+---
+
+## Init Session Payload
+
+Returned by `HostApi.sysReady()`:
 
 ```ts
-{
-  type: 'INIT_SESSION',
-  role: 'host' | 'player',
-  context: InitContext
+interface InitSessionPayloadBase {
+  sessionId:      string;
+  pin:            string;
+  role:           'host' | 'player';
+  runMode:        'host-settings' | 'host-game' | 'client-game';
+  phase:          GamePhase;
+
+  items:          OQSEItem[];
+  setMeta?:       OQSEMeta;
+  assets:         Record<string, MediaObject>;
+
+  players:        MultiPlayer[];
+  teams:          TeamInfo[];
+
+  supportsTeams:      boolean;
+  supportsLateJoin:   boolean;
+  supportsReconnect:  boolean;
+  capacity:           { min: number; max: number; recommended?: number };
+
+  configuration: SessionSettings;            // theme, locale
+  settings:      Record<string, unknown>;    // plugin-defined
+  gameState?:    unknown;                    // only for late-joining players
 }
 ```
 
-SDK effects:
+Player payloads additionally carry `self: MultiPlayer`.
 
-- Sets active role.
-- Normalizes missing fields (`pin`, `items`, `assets`, etc.).
-- Stores `context.assets` into internal session asset map for rich text rendering.
-- Calls `onInit` callback for active role.
+---
 
-### MULTI_INIT (legacy)
+## State Synchronization Model
 
-Backward-compatible initialization message accepted by the SDK.
+The host plugin owns the authoritative state. Recommended pattern:
 
 ```ts
-{
-  type: 'MULTI_INIT',
-  role?: 'host' | 'player',
-  context?: InitContext & { role?: 'host' | 'player' },
-  payload?: InitContext & { role?: 'host' | 'player' }
-}
-```
+await sdk.host.setState({ currentIndex: 0, ... });   // full broadcast
+await sdk.host.updateState((draft) => {              // mutative recipe
+  draft.currentIndex += 1;
+});                                                  // -> patches on the wire
 
-### PREPARE_GAME
-
-Prepare phase event.
-
-```ts
-{
-  type: 'PREPARE_GAME',
-  payload: { players: MultiPlayer[] }
-}
-```
-
-SDK routing:
-
-- host role -> `hostConfig.onPrepareGame(players)`
-- player role -> `playerConfig.onPrepareGame(players)`
-
-### START_GAME
-
-Start phase event.
-
-```ts
-{
-  type: 'START_GAME'
-}
-```
-
-SDK routing:
-
-- host role -> `hostConfig.onStartGame()`
-- player role -> `playerConfig.onStartGame()`
-
-### PLAYER_JOINED
-
-Delivered to host role only.
-
-```ts
-{
-  type: 'PLAYER_JOINED',
-  payload: MultiPlayer
-}
-```
-
-### PLAYER_LEFT
-
-Delivered to host role only.
-
-```ts
-{
-  type: 'PLAYER_LEFT',
-  payload: { playerId: string } | string
-}
-```
-
-### MULTI_ACTION
-
-Delivered to host role only. Supports two payload shapes:
-
-```ts
-{
-  type: 'MULTI_ACTION',
-  payload: {
-    playerId?: string,
-    playerName?: string,
-    type: string,
-    data?: unknown
+// Reconnect
+sdk.onPlayerJoin(async (p, meta) => {
+  if (meta.isReconnect || meta.isLateJoin) {
+    await sdk.host.sendStateTo(p.id);  // no effect on other players
   }
+});
+```
+
+On the player side:
+
+```ts
+sdk.onState((state) => {  /* full replace */ });
+// `sdk.player.state` is always the most recent snapshot (patches applied automatically)
+```
+
+The patch format is:
+
+```ts
+interface JsonPatch {
+  op:    'add' | 'remove' | 'replace';
+  path:  (string | number)[];
+  value?: unknown;
 }
 ```
 
-or
+This is structurally the same shape mutative emits with default options; the host side does NOT need `mutative` as a dependency.
+
+---
+
+## SDK Runtime Surface
+
+### Constructor & Connection
 
 ```ts
-{
-  type: 'MULTI_ACTION',
-  payload: {
-    action?: { type: string; data?: unknown },
-    playerId?: string
-  }
-}
+const sdk = new MemizyMultiplayerSDK<State>({
+  id:              string,
+  version:         string,
+  protocol?:       '0.4',
+  allowedOrigins?: (string | RegExp)[],   // default ['*']
+  handshakeTimeout?: number,              // default 10_000 ms
+  debug?:          boolean,
+});
+
+const init = await sdk.connect(/* { mode, standalone } */);
 ```
 
-SDK maps payload to:
+### Namespaced Managers
 
-- `hostConfig.onPlayerAction(action, playerId)`
+| Accessor | Role | Purpose |
+| --- | --- | --- |
+| `sdk.sys` | Both | Resize, error, exit. |
+| `sdk.room` | Both | Roster read + synchronization signals (`clientReady`, `hostReady`, `startGame`). |
+| `sdk.settings` | Both (mutators: host only) | Authoring surface + read-only snapshot. |
+| `sdk.host` | Host | State authoring, events, end-game. |
+| `sdk.player` | Player | `sendAction`, `state`, `onStateChange`, `onEvent`, `onGameEnd`. |
+| `sdk.text` | Both | OQSE rich-text rendering. |
 
-If action cannot be resolved, SDK falls back to `{ type: 'unknown', data: undefined }`.
+### Lifecycle Handlers
 
-### STATE_UPDATE
-
-Delivered to player role only.
-
-```ts
-{
-  type: 'STATE_UPDATE',
-  payload: { state?: GameState } | GameState
-}
-```
-
-SDK extracts state from either `payload.state` or `payload`, then calls:
-
-- `playerConfig.onStateUpdate(state)`
-
-## Plugin -> Host App messages
-
-### PLUGIN_READY
-
-Sent automatically by `start()` once.
+Chainable registration on the SDK instance:
 
 ```ts
-{
-  type: 'PLUGIN_READY',
-  payload: {
-    id: string,      // window.location.origin + window.location.pathname
-    version: string  // SDK_VERSION constant (currently 0.3.0)
-  }
-}
-```
+sdk
+  .onInit(init => { ... })
+  .onPhaseChange(phase => { ... })
+  .onConfigUpdate(cfg => { ... })
+  .onSessionAborted(reason => { ... })
 
-### MULTI_READY
+  // Host
+  .onPlayerJoin((player, meta) => { ... })
+  .onPlayerLeave(id => { ... })
+  .onPlayerReady(id => { ... })
+  .onPlayerAction((id, action) => { ... })
+  .onStartGameRequested(() => { ... })
 
-Sent by plugin via `postReadyToStart()`.
-
-```ts
-{
-  type: 'MULTI_READY'
-}
-```
-
-Use this after plugin-side preload/get-ready work is complete.
-
-### MULTI_BROADCAST
-
-Sent by host-side plugin logic via `host.broadcastState(state)`.
-
-```ts
-{
-  type: 'MULTI_BROADCAST',
-  payload: State
-}
-```
-
-### MULTI_ACTION
-
-Sent by player-side plugin logic via `player.sendAction(type, data)`.
-
-```ts
-{
-  type: 'MULTI_ACTION',
-  payload: {
-    type: string,
-    data: unknown
-  }
-}
-```
-
-### SESSION_COMPLETED
-
-Sent by host-side plugin logic via `host.endSession(scores)`.
-
-```ts
-{
-  type: 'SESSION_COMPLETED',
-  payload: Record<string, MultiPlayer>
-}
+  // Player
+  .onState(state => { ... })
+  .onEvent(event => { ... })
+  .onGameEnd(result => { ... });
 ```
 
 ---
 
-## Message Reference Table
+## Error Taxonomy
 
-| Message | Direction | Consumed/Sent by SDK | Notes |
-| :--- | :--- | :--- | :--- |
-| `PLUGIN_READY` | Plugin -> Host App | Sent | Automatic in `start()` |
-| `INIT_SESSION` | Host App -> Plugin | Consumed | Primary init |
-| `MULTI_INIT` | Host App -> Plugin | Consumed | Legacy init fallback |
-| `PREPARE_GAME` | Host App -> Plugin | Consumed | Split-Lobby phase 2 |
-| `START_GAME` | Host App -> Plugin | Consumed | Split-Lobby phase 3 |
-| `MULTI_READY` | Plugin -> Host App | Sent | Via `postReadyToStart()` |
-| `PLAYER_JOINED` | Host App -> Plugin | Consumed | Host role only |
-| `PLAYER_LEFT` | Host App -> Plugin | Consumed | Host role only |
-| `MULTI_ACTION` | Bi-directional | Both | Player -> app send, app -> host consume |
-| `MULTI_BROADCAST` | Plugin -> Host App | Sent | Host broadcast state |
-| `STATE_UPDATE` | Host App -> Plugin | Consumed | Player role only |
-| `SESSION_COMPLETED` | Plugin -> Host App | Sent | End session with scores |
+| Error | Thrown when |
+| --- | --- |
+| `SdkNotReadyError` | A manager accessor is used before `connect()` resolved. |
+| `SdkRoleError` | A host-only method was invoked from a player (or vice versa). |
+| `SdkPhaseError` | A phase-restricted method was called outside its window. |
+| `SdkDestroyedError` | Any SDK method was called after `destroy()`. |
+
+All are exported from the package root.
 
 ---
 
-## SDK Runtime API
+## Standalone Mode
 
-Current public runtime surface returned by `createMultiplayerPlugin<State>()`:
+Opened outside a Memizy host the SDK falls back to an in-memory `MockHost`. Use the `standalone` option to seed it:
 
-- `defineHost(config)`
-- `definePlayer(config)`
-- `host.broadcastState(state)`
-- `host.endSession(scores)`
-- `player.sendAction(type, data)`
-- `postReady()`
-- `postReadyToStart()`
-- `parseTextTokens(rawText)`
-- `renderHtml(rawText, options?)`
-- `start()`
+```ts
+await sdk.connect({
+  mode: 'standalone',
+  standalone: {
+    role: 'host',
+    items: [...],
+    players: [{ id: 'p1', name: 'Alice', joinedAt: Date.now() }],
+    settings: { roundTimeSec: 15 },
+  },
+});
+```
 
----
-
-## Text Processing Facade
-
-The SDK directly reuses OQSE rich-text processors and session assets:
-
-- `parseTextTokens(rawText)` -> `tokenizeOqseTags(rawText)`
-- `renderHtml(rawText, options?)` -> `prepareRichTextForDisplay(...)`
-
-`renderHtml` behavior:
-
-- Supports optional markdown parser callback.
-- Supports optional sanitizer callback.
-- Resolves `<asset:...>` tags via session assets captured from init context.
-- Replaces `<blank:...>` with text input placeholders.
+For multi-iframe harnesses, attach several `MockHost` instances to a single `MemoryMockHub`. The hub routes `onPlayerJoin`, `onPlayerAction`, `onState`, etc., so a host iframe and multiple player iframes can exchange state with no real network.
 
 ---
 
-## Type Facade Exports
+## Migration from v0.3
 
-The SDK re-exports selected OQSE core types from its package entrypoint, so plugin authors can import these types directly from `@memizy/multiplayer-sdk`.
-
-Current facade exports:
-
-- `OQSEItem`
-- `OQSEMeta`
-- `MediaObject`
-- `ProgressRecord`
-- `ProgressStats` (alias of `StatsObject`)
-- `ProgressLastAnswer` (alias of `LastAnswerObject`)
+| v0.3 | v0.4 |
+| --- | --- |
+| `createMultiplayerPlugin()` | `new MemizyMultiplayerSDK()` |
+| `sdk.defineHost({...})` | `sdk.on*()` registration on the instance |
+| `INIT_SESSION` / `MULTI_INIT` | `HostApi.sysReady()` returns the init payload |
+| `PREPARE_GAME` | Replaced by the `synchronizing` phase + `onPlayerReady` signals |
+| `START_GAME` | `onPhaseChange('playing')` after the host calls `room.startGame()` |
+| `MULTI_READY` | `room.clientReady()` / `room.hostReady()` |
+| `MULTI_ACTION` (plugin -> host for players) | `gameSendAction(action)` |
+| `MULTI_ACTION` (host -> plugin for teacher) | `onPlayerAction(playerId, action)` |
+| `MULTI_BROADCAST` | `gameBroadcastState` / `gameBroadcastStatePatches` |
+| `STATE_UPDATE` | `onState` / `onStatePatches` |
+| `SESSION_COMPLETED` | `gameEndSession(result)` |
+| Asset uploads | **Removed** - multiplayer plugins are read-only consumers. |
+| Progress sync | **Removed** - multiplayer sessions do not persist per-item progress. |
 
 ---
-
-## Current Implementation Notes and Gaps
-
-This section lists real, current behavior that is important for integrators.
-
-1. The SDK currently posts to `window.parent` with target origin `*`.
-2. The SDK does not currently validate incoming message origin/source before consuming events.
-3. `SESSION_COMPLETED` is sent by `host.endSession`, but no dedicated TypeScript interface exists yet in `src/types.ts`.
-4. There is no explicit host acknowledgment message implemented for `MULTI_READY` in this SDK.
-5. `runMode` is optional in `InitContext`; plugins should handle missing values defensively.
-6. `MULTI_INIT` remains supported for compatibility and is still part of effective runtime contract.
-
-If you want, these gaps can be turned into a follow-up hardening roadmap (typed `SESSION_COMPLETED`, strict origin checks, and optional `READY_ACK` contract).
