@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Multiplayer SDK Example · v0.4.0 Sandbox</title>
+    <meta
+      name="description"
+      content="Interactive sandbox showcasing @memizy/multiplayer-sdk v0.4.0 — one teacher, many players, teams, late join, reconnect, live leaderboard."
+    />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./style.css" />
+
+    <script type="application/oqse-manifest+json">
+      {
+        "$schema": "https://cdn.jsdelivr.net/gh/memizy/oqse-specification@main/schemas/oqse-manifest-v0.1.json",
+        "version": "0.1",
+        "pluginVersion": "1.0.0",
+        "minOqseVersion": "0.1",
+        "maxOqseVersion": "1.99",
+        "id": "com.memizy.example.multiplayer-quiz",
+        "appName": "Multiplayer Quiz (SDK Sandbox)",
+        "description": "Real-time multiplayer quiz demo showcasing the full @memizy/multiplayer-sdk v0.4 surface: settings authoring, teams, late join, reconnect, live leaderboard and transient events.",
+        "author": "Memizy Dev Team",
+        "authorUrl": "https://memizy.com",
+        "locales": ["en"],
+        "tags": ["quiz", "multiplayer", "teams", "sdk-example"],
+        "emoji": "🎮",
+        "studyMode": "game",
+        "questionDensity": "high",
+        "capabilities": {
+          "actions": ["render"],
+          "types": ["mcq-single", "true-false", "short-answer"],
+          "assets": {
+            "image": ["image/png", "image/jpeg", "image/svg+xml", "image/webp"],
+            "audio": null,
+            "video": null,
+            "model": null
+          },
+          "features": ["markdown"]
+        },
+        "appSpecific": {
+          "memizy": {
+            "multiplayer": {
+              "apiVersion": "0.4",
+              "players": { "min": 2, "max": 60, "recommended": 20 },
+              "supportsLateJoin": true,
+              "supportsReconnect": true,
+              "supportsTeams": true,
+              "requiresHostScreen": true,
+              "clientOrientation": "portrait"
+            }
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div class="shell">
+      <!-- ── Sidebar ──────────────────────────────────────────────── -->
+      <aside class="sidebar">
+        <div class="sidebar-brand">
+          <div class="brand-logo" aria-hidden="true">🎮</div>
+          <div class="brand-text">
+            <div class="brand-name">Multiplayer SDK</div>
+            <div class="brand-sub">v0.4.0 Sandbox</div>
+          </div>
+        </div>
+
+        <div class="sidebar-badges">
+          <span class="badge badge-blue">v0.4.0</span>
+          <span class="badge badge-orange">Protocol 0.4</span>
+          <span class="badge badge-green" id="mode-badge">Sandbox</span>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Session</div>
+          <div class="kv"><span class="k">Phase</span><span class="v" id="side-phase">—</span></div>
+          <div class="kv"><span class="k">PIN</span><span class="v" id="side-pin">—</span></div>
+          <div class="kv"><span class="k">Players</span><span class="v" id="side-players">0</span></div>
+          <div class="kv"><span class="k">Teams</span><span class="v" id="side-teams">—</span></div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Capabilities</div>
+          <div class="kv"><span class="k">Late join</span><span class="v">✓</span></div>
+          <div class="kv"><span class="k">Reconnect</span><span class="v">✓</span></div>
+          <div class="kv"><span class="k">Teams</span><span class="v">✓</span></div>
+          <div class="kv"><span class="k">Capacity</span><span class="v">2–20</span></div>
+        </div>
+
+        <nav class="sidebar-nav">
+          <div class="nav-section-label">Links</div>
+          <a class="nav-btn nav-btn-cta" href="https://github.com/memizy/multiplayer-sdk" target="_blank" rel="noreferrer">📦 SDK on GitHub ↗</a>
+          <a class="nav-btn" href="https://github.com/memizy/multiplayer-sdk#documentation" target="_blank" rel="noreferrer">📚 Documentation ↗</a>
+          <a class="nav-btn" href="./minimal.html">✨ Minimal example</a>
+        </nav>
+
+        <a class="sidebar-footer-link" href="https://memizy.com" target="_blank" rel="noreferrer">
+          Powered by Memizy ↗
+        </a>
+      </aside>
+
+      <!-- ── Main area ────────────────────────────────────────────── -->
+      <div class="main-wrapper">
+        <main class="main-content">
+
+          <!-- Intro card -->
+          <section class="card card-accent">
+            <div class="card-header">
+              <div>
+                <div class="card-section-label">Interactive sandbox</div>
+                <h1 style="margin:0;font-size:1.25rem;font-weight:900;letter-spacing:-0.01em;">
+                  One teacher · many players · one SDK
+                </h1>
+                <p class="text-muted" style="margin:6px 0 0;max-width:68ch;">
+                  This page instantiates a full multiplayer session in-memory. A host plugin and
+                  several player plugins share a <code>MemoryMockHub</code> so every state broadcast,
+                  action and transient event actually travels between them — exactly like it would
+                  in a real Memizy lobby.
+                </p>
+              </div>
+              <span class="phase-pill phase-settings" id="main-phase-pill">HOST-SETTINGS</span>
+            </div>
+
+            <div class="sandbox-toolbar">
+              <button type="button" class="btn btn-primary" id="btn-reset">↺ Reset sandbox</button>
+
+              <span class="sep" aria-hidden="true"></span>
+
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-add-player">＋ Add player</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-remove-player">− Remove last</button>
+
+              <span class="sep" aria-hidden="true"></span>
+
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-disconnect">🔌 Disconnect last</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-reconnect">🔄 Reconnect last</button>
+              <button type="button" class="btn btn-secondary btn-sm" id="btn-late-join">⏱ Late join</button>
+            </div>
+          </section>
+
+          <!-- Host + players -->
+          <section class="sandbox sandbox-split">
+            <!-- Host screen -->
+            <div class="screen screen-host" id="host-screen">
+              <div class="screen-head">
+                <div class="screen-title">
+                  <span class="emoji">🖥️</span>
+                  <span>Host · Teacher / projector view</span>
+                </div>
+                <div class="screen-head-actions">
+                  <span class="phase-pill phase-settings" id="host-phase-pill">HOST-SETTINGS</span>
+                </div>
+              </div>
+              <div class="screen-body" id="host-body">
+                <div class="screen-empty">Host SDK connecting…</div>
+              </div>
+            </div>
+
+            <!-- Player phones -->
+            <div class="players-stack" id="players-stack"></div>
+          </section>
+
+          <!-- Log console -->
+          <section class="card">
+            <div class="card-header">
+              <span class="card-section-label">📡 Protocol log</span>
+              <div class="card-header-actions">
+                <button type="button" class="btn btn-ghost btn-sm" id="btn-clear-log">✕ Clear</button>
+              </div>
+            </div>
+            <div class="log-panel" id="log-panel" role="log" aria-live="polite"></div>
+            <div class="form-help" style="margin-top:10px;">
+              Every message shown here corresponds to a method on <code>HostApi</code> or
+              <code>PluginApi</code>. See
+              <a href="https://github.com/memizy/multiplayer-sdk/blob/main/docs/host-protocol.md"
+                 target="_blank" rel="noreferrer">docs/host-protocol.md</a>
+              for the wire-level spec.
+            </div>
+          </section>
+
+        </main>
+      </div><!-- /.main-wrapper -->
+    </div><!-- /.shell -->
+
+    <div id="toast-root"></div>
+    <div class="confetti-layer" id="confetti-layer" aria-hidden="true"></div>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

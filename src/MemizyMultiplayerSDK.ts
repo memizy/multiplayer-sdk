@@ -86,6 +86,13 @@ export interface ConnectOptions {
   mode?: 'auto' | 'iframe' | 'standalone';
   /** Seed payload used when the SDK falls back into standalone mode. */
   standalone?: StandaloneMockData;
+  /**
+   * Optional shared `MockHub` used to connect multiple standalone SDK
+   * instances in the same browser tab (e.g. an interactive sandbox
+   * wiring one host plugin to several player plugins). Only meaningful
+   * in standalone mode; ignored when running in a real iframe.
+   */
+  mockHub?: MockHub;
 }
 
 // ---------------------------------------------------------------------------
@@ -318,7 +325,10 @@ export class MemizyMultiplayerSDK<State = unknown> {
     if (mode === 'iframe') {
       this.hostProxy = await this.connectViaPenpal();
     } else {
-      this.hostProxy = await this.bootstrapStandalone(options.standalone);
+      this.hostProxy = await this.bootstrapStandalone(
+        options.standalone,
+        options.mockHub ?? null,
+      );
     }
 
     const payload = await this.hostProxy.sysReady(this.identity);
@@ -404,9 +414,10 @@ export class MemizyMultiplayerSDK<State = unknown> {
 
   private async bootstrapStandalone(
     seed: StandaloneMockData | undefined,
+    hub: MockHub | null,
   ): Promise<HostApi> {
     const { MockHost } = await import('./standalone/MockHost');
-    const mock = new MockHost(this.buildPluginApi(), seed, this.debug);
+    const mock = new MockHost(this.buildPluginApi(), seed, this.debug, hub);
     this.mockHost = mock;
     return mock;
   }

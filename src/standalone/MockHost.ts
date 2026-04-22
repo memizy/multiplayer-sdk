@@ -102,6 +102,13 @@ export interface MockParticipant {
   participantId: string;
   role: 'host' | 'player';
   plugin: PluginApi;
+  /**
+   * Optional full `MultiPlayer` record used when the hub fires
+   * `onPlayerJoin` on the host plugin. When omitted the hub falls back
+   * to `{ id: participantId, name: participantId }` — suitable for
+   * quick smoke-tests but usually not what you want in a real sandbox.
+   */
+  profile?: MultiPlayer;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,6 +198,7 @@ export class MockHost implements HostApi {
       participantId: this.participantId,
       role,
       plugin: this.plugin,
+      profile: self,
     });
 
     return {
@@ -366,7 +374,7 @@ export class MemoryMockHub implements MockHub {
         isLateJoin: false,
       });
       host?.plugin.onPlayerJoin(
-        {
+        participant.profile ?? {
           id: participant.participantId,
           name: participant.participantId,
           joinedAt: Date.now(),
