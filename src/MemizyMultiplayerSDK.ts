@@ -51,7 +51,7 @@ import type {
   SessionResult,
 } from './rpc/types';
 
-import type { MockHost, StandaloneMockData } from './standalone/MockHost';
+import type { MockHost, MockHub, StandaloneMockData } from './standalone/MockHost';
 
 // ---------------------------------------------------------------------------
 // Options
