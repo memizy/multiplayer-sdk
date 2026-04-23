@@ -456,8 +456,13 @@ export class MemoryMockHub implements MockHub {
   }
 
   hostReady(_fromHost: string): void {
-    // No-op in the in-memory hub: the teacher shell drives the
-    // `onStartGameRequested` signal through the LocalSandbox UI.
+    // Mimic what a real Memizy host does: once the host plugin declares
+    // it is "ready" (settings valid, lobby acceptable, …) the host fires
+    // `onStartGameRequested` to ask the plugin for the initial game
+    // state. Without this the in-memory hub would silently swallow the
+    // signal and standalone demos would hang on "waiting to start".
+    const host = this.getHost();
+    host?.plugin.onStartGameRequested();
   }
 
   startGame(_fromHost: string): void {

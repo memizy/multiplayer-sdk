@@ -26,8 +26,8 @@ This example covers the **entire** public surface:
 
 | Page            | What it shows |
 |-----------------|----------------|
-| `index.html`    | **Full sandbox** — one host + several player "phones" side-by-side with a live protocol log. |
-| `minimal.html`  | **~180 lines of code** — the smallest possible host + player round-trip. Great for reading. |
+| `index.html`    | **Full sandbox** — one host SDK + several player SDKs side-by-side with a live protocol log. Pedagogically dense but not a real deployable plugin. |
+| `minimal.html`  | **Real single plugin** — exactly the shape `plugin-sdk/example/minimal.html` has: one `new MemizyMultiplayerSDK()`, one `await sdk.connect()`, the SDK's landing page routes the user to host or player. Invisible bot SDKs on a shared `MemoryMockHub` fill in the other participants so a single tab shows a working game. Drop the plugin code into a real Memizy lobby and it works unchanged. |
 
 ## Run it locally
 
