@@ -172,6 +172,9 @@ export class MemizyMultiplayerSDK<State = unknown> {
   private playerReadyHandler: PlayerReadyHandler | null = null;
   private playerActionHandler: PlayerActionHandler | null = null;
   private startGameRequestedHandler: StartGameRequestedHandler | null = null;
+  private stateHandler: Parameters<PlayerManager<State>['onStateChange']>[0] | null = null;
+  private eventHandler: ((event: GameEvent) => void) | null = null;
+  private gameEndHandler: GameEndHandler | null = null;
 
   constructor(options: MemizyMultiplayerSDKOptions) {
     this.identity = {
@@ -289,17 +292,20 @@ export class MemizyMultiplayerSDK<State = unknown> {
   onState(
     handler: Parameters<PlayerManager<State>['onStateChange']>[0],
   ): this {
-    this.player.onStateChange(handler);
+    this.stateHandler = handler;
+    this._player?.onStateChange(handler);
     return this;
   }
   /** (Player role) Listen for transient events. */
   onEvent(handler: (event: GameEvent) => void): this {
-    this.player.onEvent(handler);
+    this.eventHandler = handler;
+    this._player?.onEvent(handler);
     return this;
   }
   /** (Player role) Listen for the host-initiated game end. */
   onGameEnd(handler: GameEndHandler): this {
-    this.player.onGameEnd(handler);
+    this.gameEndHandler = handler;
+    this._player?.onGameEnd(handler);
     return this;
   }
 
@@ -524,6 +530,9 @@ export class MemizyMultiplayerSDK<State = unknown> {
         'player',
         payload.gameState as State | undefined,
       );
+      if (this.stateHandler) this._player.onStateChange(this.stateHandler);
+      if (this.eventHandler) this._player.onEvent(this.eventHandler);
+      if (this.gameEndHandler) this._player.onGameEnd(this.gameEndHandler);
       this._host = null;
     }
   }
