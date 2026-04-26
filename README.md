@@ -3,11 +3,20 @@
 TypeScript SDK for building Memizy multiplayer plugins — teacher/host on a
 projector, players on their phones, one OQSE set, one shared lobby.
 
-Live example sandbox: [memizy.github.io/multiplayer-sdk](https://memizy.github.io/multiplayer-sdk/)
+**Live example sandbox:** [memizy.github.io/multiplayer-sdk](https://memizy.github.io/multiplayer-sdk/)
 
-Documentation:
-- **[Plugin Developer Guide](./docs/plugin-developers.md)**
-- **[Host Protocol Reference](./docs/host-protocol.md)**
+## Documentation
+
+Full documentation lives in [`docs/`](./docs):
+
+- **[Plugin Developer Guide](./docs/plugin-developers.md)** — the API surface,
+  lifecycle, manager-by-manager reference, late-join / reconnect / teams
+  patterns, standalone mode, and a fully worked quiz walkthrough.
+- **[Host Protocol Reference](./docs/host-protocol.md)** — the Penpal wire
+  protocol, `HostApi` / `PluginApi` contracts, payload shapes, sequence
+  diagrams and forward-compatibility rules.
+
+## Features
 
 - **Penpal-based RPC** — plugins call typed async functions on the host (and
   vice versa); no hand-rolled `postMessage` envelopes.
