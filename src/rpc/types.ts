@@ -342,6 +342,8 @@ export interface PluginApi {
   onPlayerJoin(player: MultiPlayer, meta: PlayerJoinMeta): Promise<void>;
   /** Host app received a `room:leave` message. */
   onPlayerLeave(playerId: string): Promise<void>;
+  /** A player changed their name. */
+  onPlayerRename(playerId: string, newName: string): Promise<void>;
   /** A player plugin called `roomClientReady()` — forwarded to the host. */
   onPlayerReady(playerId: string): Promise<void>;
   /** A player plugin dispatched an action. */

@@ -313,6 +313,7 @@ type SessionAbortedReason =
 | ----------------------------------- | --------------------------------------------------------- |
 | `onPlayerJoin(player, meta)`        | Any `room:join` (initial, reconnect, or late join).       |
 | `onPlayerLeave(playerId)`           | A player disconnected / left.                             |
+| `onPlayerRename(playerId, newName)` | A player changed their name.                              |
 | `onPlayerReady(playerId)`           | A player plugin called `roomClientReady()`.               |
 | `onPlayerAction(playerId, action)`  | A player plugin called `gameSendAction(action)`.          |
 | `onStartGameRequested()`            | Teacher pressed "Start game" in the host-settings UI.     |
@@ -554,6 +555,9 @@ rely on the following without runtime checks:
 - **Enforce `requiresHostScreen` and `clientOrientation`.** The plugin
   cannot do this itself; the host shell must refuse the role assignment
   when the device doesn't qualify.
+- **Honor `customSyncScreen` and `hasSettingsScreen`.** These manifest
+  flags control host-shell UI decisions (default syncing/settings screens
+  vs plugin-provided screens) and must be read before mounting the iframe.
 - **Rate-limit actions.** `gameSendAction` is unthrottled at the
   protocol level. The host SHOULD enforce per-player rate limits before
   forwarding to `onPlayerAction`.

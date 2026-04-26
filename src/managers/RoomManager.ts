@@ -144,6 +144,20 @@ export class RoomManager {
     );
   }
 
+  /**
+   * Updates a player's name in the local roster.
+   * @internal
+   */
+  public renamePlayer(playerId: string, newName: string): void {
+    const player = this.snapshot.players.find((p) => p.id === playerId);
+    if (player) {
+      player.name = newName;
+    }
+    if (this.snapshot.self?.id === playerId) {
+      this.snapshot.self.name = newName;
+    }
+  }
+
   /** @internal */
   _replaceRoster(players: MultiPlayer[]): void {
     this.snapshot.players = players.map((p) => ({ ...p }));

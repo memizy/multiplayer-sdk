@@ -117,6 +117,10 @@ export type PlayerJoinHandler = (
 export type PlayerLeaveHandler = (
   playerId: string,
 ) => void | Promise<void>;
+export type PlayerRenameHandler = (
+  playerId: string,
+  newName: string,
+) => void | Promise<void>;
 export type PlayerReadyHandler = (
   playerId: string,
 ) => void | Promise<void>;
@@ -169,6 +173,7 @@ export class MemizyMultiplayerSDK<State = unknown> {
   // Host handlers
   private playerJoinHandler: PlayerJoinHandler | null = null;
   private playerLeaveHandler: PlayerLeaveHandler | null = null;
+  private playerRenameHandler: PlayerRenameHandler | null = null;
   private playerReadyHandler: PlayerReadyHandler | null = null;
   private playerActionHandler: PlayerActionHandler | null = null;
   private startGameRequestedHandler: StartGameRequestedHandler | null = null;
@@ -268,6 +273,14 @@ export class MemizyMultiplayerSDK<State = unknown> {
   /** A player left the lobby. */
   onPlayerLeave(handler: PlayerLeaveHandler): this {
     this.playerLeaveHandler = handler;
+    return this;
+  }
+  /**
+   * Fires when a player changes their name while in the lobby or game.
+   * Note: `sdk.room.getPlayers()` is automatically updated before this fires.
+   */
+  public onPlayerRename(handler: PlayerRenameHandler): this {
+    this.playerRenameHandler = handler;
     return this;
   }
   /** A player plugin signalled `roomClientReady()`. */
@@ -460,6 +473,14 @@ export class MemizyMultiplayerSDK<State = unknown> {
         this.log('onPlayerLeave', playerId);
         this._room?._applyLeave(playerId);
         await this.safeCall(this.playerLeaveHandler, playerId);
+      },
+
+      onPlayerRename: async (playerId: string, newName: string) => {
+        this.log('onPlayerRename', playerId, newName);
+        // Automatically update the room manager's state FIRST.
+        this._room?.renamePlayer(playerId, newName);
+        // Then notify the plugin.
+        await this.safeCall2(this.playerRenameHandler, playerId, newName);
       },
 
       onPlayerReady: async (playerId) => {

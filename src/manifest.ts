@@ -43,6 +43,8 @@ export interface MultiplayerManifestConfig {
   supportsLateJoin?: boolean;
   supportsReconnect?: boolean;
   supportsTeams?: boolean;
+  customSyncScreen?: boolean;
+  hasSettingsScreen?: boolean;
   requiresHostScreen?: boolean;
   clientOrientation?: 'portrait' | 'landscape';
 }

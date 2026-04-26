@@ -479,6 +479,7 @@ handler is wrapped in a try/catch so throwing won't break the SDK.
 | `onSessionAborted(why)`   | Both            | Session terminated externally.                 |
 | `onPlayerJoin(p, meta)`   | Host            | Lobby roster grew (incl. reconnects).          |
 | `onPlayerLeave(id)`       | Host            | Player dropped / left.                         |
+| `onPlayerRename(id, name)`| Host            | A player's display name changed.               |
 | `onPlayerReady(id)`       | Host            | A player called `room.clientReady()`.          |
 | `onPlayerAction(id, a)`   | Host            | A player submitted an action.                  |
 | `onStartGameRequested()`  | Host            | Teacher pressed Start in `host-settings`.      |
@@ -494,6 +495,7 @@ sdk
   .onSessionAborted(showEndScreen)
   .onPlayerJoin(trackRoster)
   .onPlayerLeave(trackRoster)
+  .onPlayerRename(trackPlayerRename)
   .onPlayerReady(markReady)
   .onPlayerAction(applyAction)
   .onStartGameRequested(startGame);
@@ -709,6 +711,8 @@ Declare multiplayer capabilities in `appSpecific.memizy.multiplayer`:
         "supportsLateJoin":   true,
         "supportsReconnect":  true,
         "supportsTeams":      true,
+        "customSyncScreen":   false,
+        "hasSettingsScreen":  true,
         "requiresHostScreen": true,
         "clientOrientation":  "portrait"
       }
@@ -724,6 +728,8 @@ Declare multiplayer capabilities in `appSpecific.memizy.multiplayer`:
 | `supportsLateJoin`   | Host app permits joins during `playing`.                                         |
 | `supportsReconnect`  | Host app reuses `playerId` when a dropout returns.                               |
 | `supportsTeams`      | `init.teams` / `MultiPlayer.teamId` are populated.                               |
+| `customSyncScreen`   | Plugin provides its own sync/waiting screen; host shell can skip default UI.     |
+| `hasSettingsScreen`  | Plugin provides an in-iframe host settings UI in `host-settings`.                |
 | `requiresHostScreen` | Host app refuses to start without a projector device. **Host app concern.**      |
 | `clientOrientation`  | Host app enforces portrait/landscape on players. **Host app concern.**           |
 
