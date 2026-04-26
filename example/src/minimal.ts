@@ -152,7 +152,7 @@ function mountShell(role: PluginRole): Shell {
             <code>MemoryMockHub</code> make the game playable in a single tab.
           </p>
           <div class="badges">
-            <span class="badge">v0.4.0</span>
+            <span class="badge">v0.4.1</span>
             <span class="badge badge-blue">Standalone</span>
             <span class="badge badge-green">Role: ${role}</span>
           </div>

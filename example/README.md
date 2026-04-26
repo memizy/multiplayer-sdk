@@ -1,6 +1,6 @@
 # Multiplayer Quiz Example — @memizy/multiplayer-sdk
 
-A live, brand-aligned sandbox for the `@memizy/multiplayer-sdk` v0.4. One
+A live, brand-aligned sandbox for the `@memizy/multiplayer-sdk` v0.4.1. One
 HTML page instantiates a full in-memory session — a host plugin plus
 several player plugins, all sharing a `MemoryMockHub` — so every state
 broadcast, transient event and player action actually travels between

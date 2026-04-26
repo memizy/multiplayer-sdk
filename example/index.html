@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Multiplayer SDK Example · v0.4.0 Sandbox</title>
+    <title>Multiplayer SDK Example · v0.4.1 Sandbox</title>
     <meta
       name="description"
-      content="Interactive sandbox showcasing @memizy/multiplayer-sdk v0.4.0 — one teacher, many players, teams, late join, reconnect, live leaderboard."
+      content="Interactive sandbox showcasing @memizy/multiplayer-sdk v0.4.1 — one teacher, many players, teams, late join, reconnect, live leaderboard."
     />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -21,7 +21,7 @@
       {
         "$schema": "https://cdn.jsdelivr.net/gh/memizy/oqse-specification@main/schemas/oqse-manifest-v0.1.json",
         "version": "0.1",
-        "pluginVersion": "1.0.0",
+        "pluginVersion": "0.4.1",
         "minOqseVersion": "0.1",
         "maxOqseVersion": "1.99",
         "id": "com.memizy.example.multiplayer-quiz",
@@ -55,7 +55,7 @@
               "players": { "min": 2, "max": 60, "recommended": 20 },
               "supportsLateJoin": true,
               "supportsReconnect": true,
-              "supportsTeams": true,
+              "supportsTeams": false,
               "requiresHostScreen": true,
               "clientOrientation": "portrait"
             }
@@ -72,12 +72,12 @@
           <div class="brand-logo" aria-hidden="true">🎮</div>
           <div class="brand-text">
             <div class="brand-name">Multiplayer SDK</div>
-            <div class="brand-sub">v0.4.0 Sandbox</div>
+            <div class="brand-sub">v0.4.1 Sandbox</div>
           </div>
         </div>
 
         <div class="sidebar-badges">
-          <span class="badge badge-blue">v0.4.0</span>
+          <span class="badge badge-blue">v0.4.1</span>
           <span class="badge badge-orange">Protocol 0.4</span>
           <span class="badge badge-green" id="mode-badge">Sandbox</span>
         </div>

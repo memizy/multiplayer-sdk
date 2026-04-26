@@ -5,8 +5,7 @@
 > [`plugin-developers.md`](./plugin-developers.md) — this document is the
 > host-integration reference.
 
-`@memizy/multiplayer-sdk` version **`0.4.0`** speaks protocol version
-**`0.4`**.
+`@memizy/multiplayer-sdk` version **`0.4.1`** speaks protocol version **`0.4`**.
 
 ---
 
@@ -564,6 +563,8 @@ rely on the following without runtime checks:
   `customSyncScreen` / `hasSettingsScreen` control host-shell UI decisions,
   while `apiVersion` / `minimumHostApiVersion` provide compatibility
   metadata used during host/plugin version negotiation.
+  `customSyncScreen` defaults to `false` and `hasSettingsScreen` defaults to
+  `true` when omitted.
 - **Rate-limit actions.** `gameSendAction` is unthrottled at the
   protocol level. The host SHOULD enforce per-player rate limits before
   forwarding to `onPlayerAction`.

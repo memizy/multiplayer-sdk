@@ -1,5 +1,5 @@
 /**
- * @memizy/multiplayer-sdk — v0.4.0
+ * @memizy/multiplayer-sdk — v0.4.1
  *
  * Public entry point. One import gets plugin authors:
  *  - The `MemizyMultiplayerSDK` class.
@@ -81,9 +81,9 @@ export type {
 
 // ── Manifest helpers ──────────────────────────────────────────────────────
 export type {
-  OQSEManifest,
   MultiplayerManifestConfig,
 } from './manifest';
+export type { OQSEManifest } from '@memizy/oqse';
 export {
   loadManifestFromDataIsland,
   isInsideIframe,

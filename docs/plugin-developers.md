@@ -708,7 +708,7 @@ Declare multiplayer capabilities in `appSpecific.memizy.multiplayerSdk`:
   "appSpecific": {
     "memizy": {
       "multiplayerSdk": {
-        "apiVersion": "0.4",
+        "apiVersion": "0.4.1",
         "minimumHostApiVersion": "0.4",
         "players":            { "min": 2, "max": 60, "recommended": 20 },
         "supportsLateJoin":   true,
@@ -732,8 +732,8 @@ Declare multiplayer capabilities in `appSpecific.memizy.multiplayerSdk`:
 | `supportsLateJoin`   | Host app permits joins during `playing`.                                         |
 | `supportsReconnect`  | Host app reuses `playerId` when a dropout returns.                               |
 | `supportsTeams`      | `init.teams` / `MultiPlayer.teamId` are populated.                               |
-| `customSyncScreen`   | Plugin provides its own sync/waiting screen; host shell can skip default UI.     |
-| `hasSettingsScreen`  | Plugin provides an in-iframe host settings UI in `host-settings`.                |
+| `customSyncScreen`   | Plugin provides its own sync/waiting screen; host shell can skip default UI. (Defaults to `false` if omitted). |
+| `hasSettingsScreen`  | Plugin provides an in-iframe host settings UI in `host-settings`. (Defaults to `true` if omitted). |
 | `requiresHostScreen` | Host app refuses to start without a projector device. **Host app concern.**      |
 | `clientOrientation`  | Host app enforces portrait/landscape on players. **Host app concern.**           |
 

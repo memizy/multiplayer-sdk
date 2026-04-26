@@ -14,7 +14,7 @@
  */
 
 import { isInsideIframe, readMultiplayerConfig } from '../manifest';
-import type { OQSEManifest } from '../manifest';
+import type { OQSEManifest } from '@memizy/oqse';
 
 const LANDING_STYLE_ID = 'memizy-mp-landing-styles';
 
@@ -290,10 +290,30 @@ function buildHtml(
   const description =
     manifest?.description ?? 'A multiplayer plugin for Memizy.';
   const emoji = manifest?.emoji ?? '🎮';
-  const author = manifest?.author ?? 'Unknown author';
-  const authorUrl = manifest?.authorUrl;
-  const authorLink = authorUrl
-    ? `<a href="${esc(authorUrl)}" target="_blank" rel="noopener noreferrer">${esc(author)}</a>`
+  const rawAuthor = manifest?.author;
+  const author =
+    typeof rawAuthor === 'string'
+      ? rawAuthor
+      : rawAuthor && typeof rawAuthor === 'object' && 'name' in rawAuthor
+        ? String(
+            (
+              rawAuthor as {
+                name?: unknown;
+              }
+            ).name ?? 'Unknown author',
+          )
+        : 'Unknown author';
+  const authorUrl =
+    rawAuthor && typeof rawAuthor === 'object' && 'url' in rawAuthor
+      ? (
+          rawAuthor as {
+            url?: unknown;
+          }
+        ).url
+      : undefined;
+  const authorUrlString = typeof authorUrl === 'string' ? authorUrl : undefined;
+  const authorLink = authorUrlString
+    ? `<a href="${esc(authorUrlString)}" target="_blank" rel="noopener noreferrer">${esc(author)}</a>`
     : esc(author);
 
   const multi = readMultiplayerConfig(manifest);

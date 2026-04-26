@@ -16,7 +16,7 @@ projector, players on their phones, one OQSE set, one shared lobby.
 - **Standalone mode out of the box** — a branded landing page and an in-memory
   `MockHost` let you run a plugin locally with zero Memizy dependencies.
 
-**Package version:** `0.4.0` &middot; **Protocol version:** `0.4`
+**Package version:** `0.4.1` &middot; **Protocol version:** `0.4`
 
 ---
 

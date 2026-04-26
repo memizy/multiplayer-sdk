@@ -7,34 +7,7 @@
  * configuration lives under `appSpecific.memizy.multiplayerSdk`.
  */
 
-/** Shape of an OQSE manifest as far as the SDK is concerned. */
-export interface OQSEManifest {
-  $schema?: string;
-  version: string;
-  pluginVersion?: string;
-  minOqseVersion?: string;
-  maxOqseVersion?: string;
-  id: string;
-  appName: string;
-  description?: string;
-  author?: string;
-  authorUrl?: string;
-  locales?: string[];
-  tags?: string[];
-  emoji?: string;
-  studyMode?: 'game' | 'fun' | 'drill';
-  questionDensity?: 'low' | 'medium' | 'high';
-  appSpecific?: AppSpecificConfigs;
-  capabilities: {
-    actions: string[];
-    types?: string[];
-    assets?: Record<string, string[] | null>;
-    features?: string[];
-    latexPackages?: string[];
-    itemProperties?: string[];
-    metaProperties?: string[];
-  };
-}
+import type { OQSEManifest } from '@memizy/oqse';
 
 export interface AppSpecificConfigs {
   memizy?: {
@@ -64,10 +37,13 @@ export interface MultiplayerManifestConfig {
 export function readMultiplayerConfig(
   manifest: OQSEManifest | null | undefined,
 ): MultiplayerManifestConfig {
-  const multiplayerSdk = manifest?.appSpecific?.memizy?.multiplayerSdk;
+  const appSpecific = manifest?.appSpecific as AppSpecificConfigs | undefined;
+  const multiplayerSdk = appSpecific?.memizy?.multiplayerSdk;
   return {
     apiVersion: multiplayerSdk?.apiVersion ?? '0.4',
     minimumHostApiVersion: multiplayerSdk?.minimumHostApiVersion ?? '0.4',
+    customSyncScreen: multiplayerSdk?.customSyncScreen ?? false,
+    hasSettingsScreen: multiplayerSdk?.hasSettingsScreen ?? true,
     ...multiplayerSdk,
   };
 }
