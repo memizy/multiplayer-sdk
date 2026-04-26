@@ -63,6 +63,7 @@ const PLAYER_POOL: Array<{ id: string; name: string; emoji: string }> = [
 const INITIAL_PLAYER_COUNT = 3;
 
 const LOBBY_PIN = '428619';
+const NEXT_QUESTION_DELAY_MS = 10000;
 
 // ═══════════════════════════════════════════════════════════════════════════
 // SETTINGS + GAME STATE
@@ -776,6 +777,7 @@ class HostStation {
       draft.currentAnswers = {};
       draft.reveal = null;
     });
+    this.state = this.sdk.host.getState() ?? null;
     await this.sdk.host.sendEvent('all', {
       type: 'question',
       data: { index, total: this.state!.totalQuestions },
@@ -788,12 +790,12 @@ class HostStation {
     });
   }
 
-  private handleAnswer(playerId: string, payload: AnswerPayload): void {
+  private async handleAnswer(playerId: string, payload: AnswerPayload): Promise<void> {
     if (!this.state || this.state.phase !== 'question' || !this.state.question) return;
     if (this.state.currentAnswers[playerId]) return; // already answered
 
     const correct = isCorrect(this.state.question, payload);
-    void this.sdk.host.updateState((draft) => {
+    await this.sdk.host.updateState((draft) => {
       draft.currentAnswers[playerId] = {
         choiceIndex: payload.choiceIndex ?? null,
         text: payload.text ?? null,
@@ -801,11 +803,13 @@ class HostStation {
         answeredAt: Date.now(),
       };
     });
+    const latest = this.sdk.host.getState();
+    if (!latest) return;
+    this.state = latest;
 
     // When everyone has answered we can reveal early.
     const connectedIds = this.sandbox.players.filter((p) => p.connected).map((p) => p.profile.id);
-    const answeredCount =
-      Object.keys(this.state.currentAnswers).length + 1; // +1 for the one we just added
+    const answeredCount = Object.keys(latest.currentAnswers).length;
     if (answeredCount >= connectedIds.length) {
       this.clearAutoAdvance();
       this.scheduleAdvance(400, () => void this.revealQuestion('everyone_answered'));
@@ -842,6 +846,7 @@ class HostStation {
         }
       }
     });
+    this.state = this.sdk.host.getState() ?? null;
 
     await this.sdk.host.sendEvent('all', {
       type: 'reveal',
@@ -850,9 +855,11 @@ class HostStation {
     log(`Reveal (${reason}) — ${Object.values(correctByPlayer).filter(Boolean).length} correct`, 'host');
     this.renderHost();
 
-    this.scheduleAdvance(3200, () => {
-      if (!this.state) return;
-      void this.showQuestion((this.state.question?.index ?? -1) + 1);
+    this.startRevealCountdown(NEXT_QUESTION_DELAY_MS);
+    this.scheduleAdvance(NEXT_QUESTION_DELAY_MS, () => {
+      const latest = this.sdk.host.getState();
+      if (!latest) return;
+      void this.showQuestion((latest.question?.index ?? -1) + 1);
     });
   }
 
@@ -869,6 +876,7 @@ class HostStation {
       draft.question = null;
       draft.reveal = null;
     });
+    this.state = this.sdk.host.getState() ?? null;
     await this.sdk.host.endGame(result);
     this.hub.advancePhase('finished');
     this.renderFinal();
@@ -966,6 +974,12 @@ class HostStation {
             })
             .join('')}
         </div>
+        <div class="q-foot">
+          <div class="q-answers-count">
+            <span class="dot"></span>
+            Next question in <span id="next-q-countdown">${Math.ceil(NEXT_QUESTION_DELAY_MS / 1000)}s</span>
+          </div>
+        </div>
         ${this.renderScoreboardHtml()}
       </div>`;
   }
@@ -1056,6 +1070,17 @@ class HostStation {
     const endsAt = Date.now() + this.settings.perQuestionSeconds * 1000;
     this.tickHandle = setInterval(() => {
       const el = document.getElementById('q-countdown');
+      if (!el) return;
+      const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+      el.textContent = `${remaining}s`;
+    }, 200);
+  }
+
+  private startRevealCountdown(durationMs: number): void {
+    this.stopCountdown();
+    const endsAt = Date.now() + durationMs;
+    this.tickHandle = setInterval(() => {
+      const el = document.getElementById('next-q-countdown');
       if (!el) return;
       const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
       el.textContent = `${remaining}s`;
