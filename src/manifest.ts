@@ -4,7 +4,7 @@
  *
  * These utilities mirror the single-player SDK so plugin authors can
  * share their existing manifest code unchanged. The multiplayer-specific
- * configuration lives under `appSpecific.memizy.multiplayer`.
+ * configuration lives under `appSpecific.memizy.multiplayerSdk`.
  */
 
 /** Shape of an OQSE manifest as far as the SDK is concerned. */
@@ -24,7 +24,7 @@ export interface OQSEManifest {
   emoji?: string;
   studyMode?: 'game' | 'fun' | 'drill';
   questionDensity?: 'low' | 'medium' | 'high';
-  appSpecific?: Record<string, unknown>;
+  appSpecific?: AppSpecificConfigs;
   capabilities: {
     actions: string[];
     types?: string[];
@@ -36,9 +36,17 @@ export interface OQSEManifest {
   };
 }
 
-/** Multiplayer-specific block under `appSpecific.memizy.multiplayer`. */
+export interface AppSpecificConfigs {
+  memizy?: {
+    multiplayerSdk?: Partial<MultiplayerManifestConfig>;
+  };
+  [key: string]: unknown;
+}
+
+/** Multiplayer-specific block under `appSpecific.memizy.multiplayerSdk`. */
 export interface MultiplayerManifestConfig {
-  apiVersion?: string;
+  apiVersion: string;
+  minimumHostApiVersion: string;
   players?: { min: number; max: number; recommended?: number };
   supportsLateJoin?: boolean;
   supportsReconnect?: boolean;
@@ -56,10 +64,12 @@ export interface MultiplayerManifestConfig {
 export function readMultiplayerConfig(
   manifest: OQSEManifest | null | undefined,
 ): MultiplayerManifestConfig {
-  const appSpecific = manifest?.appSpecific as
-    | { memizy?: { multiplayer?: MultiplayerManifestConfig } }
-    | undefined;
-  return appSpecific?.memizy?.multiplayer ?? {};
+  const multiplayerSdk = manifest?.appSpecific?.memizy?.multiplayerSdk;
+  return {
+    apiVersion: multiplayerSdk?.apiVersion ?? '0.4',
+    minimumHostApiVersion: multiplayerSdk?.minimumHostApiVersion ?? '0.4',
+    ...multiplayerSdk,
+  };
 }
 
 /**

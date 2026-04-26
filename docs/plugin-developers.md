@@ -70,6 +70,8 @@ Create an SDK instance, register lifecycle handlers, then `await sdk.connect()`.
 resolves with the **initial session payload** — everything the plugin needs
 to render the first frame (items, assets, roster, teams, settings, phase,
 role, …).
+During this `connect()` handshake, the SDK automatically sends
+`PluginIdentity.sdkVersion` (the package version) and `protocol` to the host.
 
 ```ts
 import { MemizyMultiplayerSDK } from '@memizy/multiplayer-sdk';
@@ -692,7 +694,7 @@ See the [example plugin](../example/) for a working reference.
 
 ## Manifest configuration
 
-Declare multiplayer capabilities in `appSpecific.memizy.multiplayer`:
+Declare multiplayer capabilities in `appSpecific.memizy.multiplayerSdk`:
 
 ```json
 {
@@ -705,8 +707,9 @@ Declare multiplayer capabilities in `appSpecific.memizy.multiplayer`:
   },
   "appSpecific": {
     "memizy": {
-      "multiplayer": {
+      "multiplayerSdk": {
         "apiVersion": "0.4",
+        "minimumHostApiVersion": "0.4",
         "players":            { "min": 2, "max": 60, "recommended": 20 },
         "supportsLateJoin":   true,
         "supportsReconnect":  true,
@@ -723,7 +726,8 @@ Declare multiplayer capabilities in `appSpecific.memizy.multiplayer`:
 
 | Field                | Effect                                                                           |
 | -------------------- | -------------------------------------------------------------------------------- |
-| `apiVersion`         | Protocol the plugin was built against (`'0.4'`).                                 |
+| `apiVersion`         | SDK/API version used to build the plugin (for host compatibility checks).       |
+| `minimumHostApiVersion` | Oldest host protocol/API version the plugin can tolerate.                    |
 | `players`            | Lobby capacity; surfaced as `init.capacity`.                                     |
 | `supportsLateJoin`   | Host app permits joins during `playing`.                                         |
 | `supportsReconnect`  | Host app reuses `playerId` when a dropout returns.                               |

@@ -53,6 +53,9 @@ import type {
 
 import type { MockHost, MockHub, StandaloneMockData } from './standalone/MockHost';
 
+declare const __SDK_VERSION__: string;
+const SDK_VERSION = __SDK_VERSION__;
+
 // ---------------------------------------------------------------------------
 // Options
 // ---------------------------------------------------------------------------
@@ -185,6 +188,7 @@ export class MemizyMultiplayerSDK<State = unknown> {
     this.identity = {
       id: options.id,
       version: options.version,
+      sdkVersion: SDK_VERSION,
       protocol: options.protocol ?? '0.4',
     };
     this.allowedOrigins = options.allowedOrigins ?? ['*'];

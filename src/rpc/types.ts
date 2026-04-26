@@ -36,12 +36,12 @@ import type {
 export interface PluginIdentity {
   id: string;
   version: string;
+  /** The version of @memizy/multiplayer-sdk being used by the plugin. */
+  sdkVersion: string;
   /**
-   * Minimum multiplayer protocol version this plugin was built against
-   * (semver-major.minor, e.g. `'0.4'`). The host MAY refuse to load a
-   * plugin whose contract is incompatible.
+   * The protocol version the plugin expects (e.g. `'0.4'`).
    */
-  protocol?: string;
+  protocol: string;
 }
 
 /** Host-provided UX configuration, mirrors the single-player SDK. */
@@ -73,7 +73,7 @@ export interface MultiPlayer {
   joinedAt: number;
   /**
    * Optional team membership. Populated only when the plugin manifest
-   * declares `appSpecific.memizy.multiplayer.supportsTeams: true`.
+   * declares `appSpecific.memizy.multiplayerSdk.supportsTeams: true`.
    */
   teamId?: string;
   /**

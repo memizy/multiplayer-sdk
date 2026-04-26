@@ -105,9 +105,13 @@ to `PluginErrorReport` values (`code` + `message` + context).
 interface PluginIdentity {
   id:        string;  // matches the manifest id
   version:   string;  // plugin version
-  protocol?: string;  // minimum protocol version (e.g. '0.4')
+  sdkVersion: string; // @memizy/multiplayer-sdk package version
+  protocol:  string;  // required protocol version (e.g. '0.4')
 }
 ```
+
+`sdkVersion` is injected by the SDK build (`__SDK_VERSION__`) and sent
+automatically during `sdk.connect()`.
 
 The host MAY refuse to serve a plugin whose `protocol` is incompatible
 (semver major/minor check) by rejecting the `sysReady` promise with a
@@ -555,9 +559,11 @@ rely on the following without runtime checks:
 - **Enforce `requiresHostScreen` and `clientOrientation`.** The plugin
   cannot do this itself; the host shell must refuse the role assignment
   when the device doesn't qualify.
-- **Honor `customSyncScreen` and `hasSettingsScreen`.** These manifest
-  flags control host-shell UI decisions (default syncing/settings screens
-  vs plugin-provided screens) and must be read before mounting the iframe.
+- **Honor `multiplayerSdk` manifest flags** under
+  `appSpecific.memizy.multiplayerSdk`.
+  `customSyncScreen` / `hasSettingsScreen` control host-shell UI decisions,
+  while `apiVersion` / `minimumHostApiVersion` provide compatibility
+  metadata used during host/plugin version negotiation.
 - **Rate-limit actions.** `gameSendAction` is unthrottled at the
   protocol level. The host SHOULD enforce per-player rate limits before
   forwarding to `onPlayerAction`.

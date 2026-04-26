@@ -151,15 +151,16 @@ is specified in [`docs/host-protocol.md`](./docs/host-protocol.md).
 
 ## Manifest
 
-Declare multiplayer capabilities under `appSpecific.memizy.multiplayer`:
+Declare multiplayer capabilities under `appSpecific.memizy.multiplayerSdk`:
 
 ```json
 {
   "capabilities": { "actions": ["render"], "types": ["mcq-single"] },
   "appSpecific": {
     "memizy": {
-      "multiplayer": {
+      "multiplayerSdk": {
         "apiVersion": "0.4",
+        "minimumHostApiVersion": "0.4",
         "players": { "min": 2, "max": 60, "recommended": 30 },
         "supportsLateJoin": true,
         "supportsReconnect": true,
