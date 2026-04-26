@@ -1,9 +1,13 @@
 import { defineConfig } from 'vite';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { readFileSync } from 'fs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const sdkRoot = resolve(here, '..');
+const packageJson = JSON.parse(
+  readFileSync(resolve(sdkRoot, 'package.json'), 'utf-8'),
+) as { version: string };
 
 /**
  * Vite config for the multiplayer-sdk example plugin.
@@ -19,6 +23,9 @@ const sdkRoot = resolve(here, '..');
 export default defineConfig({
   root: here,
   base: './',
+  define: {
+    __SDK_VERSION__: JSON.stringify(packageJson.version),
+  },
   resolve: {
     alias: {
       '@memizy/multiplayer-sdk': resolve(sdkRoot, 'src/index.ts'),

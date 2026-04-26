@@ -708,7 +708,7 @@ Declare multiplayer capabilities in `appSpecific.memizy.multiplayerSdk`:
   "appSpecific": {
     "memizy": {
       "multiplayerSdk": {
-        "apiVersion": "0.4.1",
+        "apiVersion": "0.4",
         "minimumHostApiVersion": "0.4",
         "players":            { "min": 2, "max": 60, "recommended": 20 },
         "supportsLateJoin":   true,
